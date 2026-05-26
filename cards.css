@@ -165,3 +165,36 @@
   display: inline-block;
   line-height: 1;
 }
+
+/* 5개짜리 과일 주사위 5 모양 배치 (CSS Grid 활용) */
+.card-content.dice-five {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  gap: 0;
+}
+
+.card-content.dice-five span {
+  font-size: 0.85em; /* 5개일 때는 삐져나가지 않도록 크기를 15% 줄임 */
+}
+
+.card-content.dice-five span:nth-child(1) {
+  grid-column: 1;
+  grid-row: 1;
+} /* 좌상단 */
+.card-content.dice-five span:nth-child(2) {
+  grid-column: 3;
+  grid-row: 1;
+} /* 우상단 */
+.card-content.dice-five span:nth-child(3) {
+  grid-column: 2;
+  grid-row: 2;
+} /* 정중앙 */
+.card-content.dice-five span:nth-child(4) {
+  grid-column: 1;
+  grid-row: 3;
+} /* 좌하단 */
+.card-content.dice-five span:nth-child(5) {
+  grid-column: 3;
+  grid-row: 3;
+} /* 우하단 */
