@@ -1,0 +1,48 @@
+/* 텍스트, 라벨, 정보 표시 및 모달 텍스트 요소 */
+.turn-result {
+  font-size: 1.3rem;
+  font-weight: bold;
+  height: 2rem;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.info {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px 16px;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+}
+
+.active-turn {
+  background-color: #fbc02d !important;
+  color: #000 !important;
+  box-shadow:
+    0 0 10px #fbc02d,
+    0 0 20px #fbc02d !important;
+  transform: scale(1.1);
+}
+
+.opponent-area .info {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  margin-bottom: 0;
+}
+
+#message {
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+  min-height: 1.5em;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+#game-over-desc,
+#confirm-desc {
+  font-size: 1.5rem;
+  text-align: center;
+  margin-bottom: 20px;
+}

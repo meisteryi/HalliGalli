@@ -1,0 +1,533 @@
+/* 할리갈리 게임 스타일 */
+:root {
+  --bg-color: #2e7d32;
+  --text-color: #ffffff;
+  --card-bg: #ffffff;
+  --bell-color: #d32f2f;
+  --bell-shadow: #b71c1c;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family:
+    'Pretendard',
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    Roboto,
+    sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  width: 100%;
+  height: 100%;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.back-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  font-size: 2.5rem;
+  cursor: pointer;
+  z-index: 50;
+  transition: transform 0.1s ease;
+}
+.back-btn:active {
+  transform: scale(0.9);
+}
+
+#start-screen h1 {
+  font-size: 2.5rem;
+  text-align: center;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.player-select {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 80%;
+  max-width: 300px;
+}
+
+#player-count-input {
+  padding: 15px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  outline: none;
+}
+
+.turn-cards-container {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.turn-card {
+  width: 80px;
+  height: 120px;
+  background-color: #fbc02d;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 3.5rem;
+  font-family: '궁서', 'Gungsuh', 'Nanum Pen Script', serif; /* 필기체 느낌 */
+  color: #000;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  border: 2px solid #f9a825;
+}
+
+.turn-card:hover {
+  transform: translateY(-10px);
+}
+
+.turn-card:active {
+  transform: scale(0.95);
+}
+
+.turn-card.revealed {
+  background-color: white;
+  border: 2px dashed rgba(0, 0, 0, 0.2);
+  cursor: default;
+  transform: none !important;
+}
+
+.turn-result {
+  font-size: 1.3rem;
+  font-weight: bold;
+  height: 2rem;
+  margin-top: 20px;
+  text-align: center;
+}
+
+#game-container {
+  width: 100%;
+  max-width: 600px;
+  height: 100%;
+  margin: 0 auto;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.opponent-area {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  min-width: 80px;
+  gap: 5px;
+  z-index: 5;
+}
+
+/* 위치 지정 클래스 (인원수와 인덱스에 따라 동서남북 원형 배치) */
+/* 2인용: 맞은편(북쪽) */
+.pos-2-1 {
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.pos-2-1 .card-slot {
+  transform: rotate(180deg);
+}
+
+/* 3인용: 북서, 북동 */
+.pos-3-1 {
+  top: 60px;
+  left: 5%;
+}
+.pos-3-1 .card-slot {
+  transform: rotate(135deg);
+}
+.pos-3-2 {
+  top: 60px;
+  right: 5%;
+}
+.pos-3-2 .card-slot {
+  transform: rotate(-135deg);
+}
+
+/* 4인용: 서, 북, 동 */
+.pos-4-1 {
+  top: 40%;
+  left: 10px;
+  transform: translateY(-50%);
+}
+.pos-4-1 .card-slot {
+  transform: rotate(90deg);
+}
+.pos-4-2 {
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.pos-4-2 .card-slot {
+  transform: rotate(180deg);
+}
+.pos-4-3 {
+  top: 40%;
+  right: 10px;
+  transform: translateY(-50%);
+}
+.pos-4-3 .card-slot {
+  transform: rotate(-90deg);
+}
+
+/* 5인용: 서, 북서, 북동, 동 */
+.pos-5-1 {
+  top: 45%;
+  left: 10px;
+  transform: translateY(-50%);
+}
+.pos-5-1 .card-slot {
+  transform: rotate(90deg);
+}
+.pos-5-2 {
+  top: 40px;
+  left: 25%;
+  transform: translateX(-50%);
+}
+.pos-5-2 .card-slot {
+  transform: rotate(145deg);
+}
+.pos-5-3 {
+  top: 40px;
+  left: 75%;
+  transform: translateX(-50%);
+}
+.pos-5-3 .card-slot {
+  transform: rotate(-145deg);
+}
+.pos-5-4 {
+  top: 45%;
+  right: 10px;
+  transform: translateY(-50%);
+}
+.pos-5-4 .card-slot {
+  transform: rotate(-90deg);
+}
+
+/* 6인용: 하단좌측, 상단좌측, 상단중앙, 상단우측, 하단우측 */
+.pos-6-1 {
+  top: 60%;
+  left: 5%;
+  transform: translateY(-50%);
+}
+.pos-6-1 .card-slot {
+  transform: rotate(45deg);
+}
+.pos-6-2 {
+  top: 25%;
+  left: 15%;
+  transform: translateY(-50%);
+}
+.pos-6-2 .card-slot {
+  transform: rotate(135deg);
+}
+.pos-6-3 {
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.pos-6-3 .card-slot {
+  transform: rotate(180deg);
+}
+.pos-6-4 {
+  top: 25%;
+  right: 15%;
+  transform: translateY(-50%);
+}
+.pos-6-4 .card-slot {
+  transform: rotate(-135deg);
+}
+.pos-6-5 {
+  top: 60%;
+  right: 5%;
+  transform: translateY(-50%);
+}
+.pos-6-5 .card-slot {
+  transform: rotate(-45deg);
+}
+
+/* 7인용: 하단좌측, 중단좌측, 상단좌측, 상단우측, 중단우측, 하단우측 */
+.pos-7-1 {
+  top: 65%;
+  left: 5%;
+  transform: translateY(-50%);
+}
+.pos-7-1 .card-slot {
+  transform: rotate(60deg);
+}
+
+.pos-7-2 {
+  top: 35%;
+  left: 5%;
+  transform: translateY(-50%);
+}
+.pos-7-2 .card-slot {
+  transform: rotate(110deg);
+}
+
+.pos-7-3 {
+  top: 30px;
+  left: 30%;
+  transform: translateX(-50%);
+}
+.pos-7-3 .card-slot {
+  transform: rotate(150deg);
+}
+
+.pos-7-4 {
+  top: 30px;
+  left: 70%;
+  transform: translateX(-50%);
+}
+.pos-7-4 .card-slot {
+  transform: rotate(-150deg);
+}
+
+.pos-7-5 {
+  top: 35%;
+  right: 5%;
+  transform: translateY(-50%);
+}
+.pos-7-5 .card-slot {
+  transform: rotate(-110deg);
+}
+
+.pos-7-6 {
+  top: 65%;
+  right: 5%;
+  transform: translateY(-50%);
+}
+.pos-7-6 .card-slot {
+  transform: rotate(-60deg);
+}
+
+.player-area {
+  justify-content: flex-end;
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 350px;
+  z-index: 5;
+}
+
+.info {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px 16px;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+}
+
+.active-turn {
+  background-color: #fbc02d !important;
+  color: #000 !important;
+  box-shadow:
+    0 0 10px #fbc02d,
+    0 0 20px #fbc02d !important;
+  transform: scale(1.1);
+}
+
+.opponent-area .info {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  margin-bottom: 0;
+}
+
+.card-slot {
+  width: 120px;
+  height: 160px;
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2.5rem;
+  color: #000;
+  text-align: center;
+  line-height: 1.2;
+  padding: 10px;
+  /* 카드가 비어있을 때 미세한 테두리 */
+  border: 2px dashed rgba(0, 0, 0, 0.1);
+}
+
+.opponent-area .card-slot {
+  width: 90px;
+  height: 120px;
+  font-size: 2rem;
+}
+
+/* 과일 개수에 따른 줄바꿈 처리용 */
+.card-content {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+}
+
+/* 중앙 종 및 메세지 영역 */
+.center-area {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  z-index: 10;
+}
+
+#bell-btn {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background-color: var(--bell-color);
+  border: none;
+  box-shadow:
+    0 8px 0 var(--bell-shadow),
+    0 15px 20px rgba(0, 0, 0, 0.4);
+  font-size: 4rem;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#bell-btn:active {
+  transform: translateY(8px);
+  box-shadow:
+    0 0 0 var(--bell-shadow),
+    0 5px 10px rgba(0, 0, 0, 0.4);
+}
+
+#message {
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+  min-height: 1.5em;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.controls {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.btn {
+  flex: 1;
+  padding: 15px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background-color: #fbc02d;
+  color: #000;
+  box-shadow: 0 4px 0 #f9a825;
+  transition: all 0.1s ease;
+}
+
+.btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #f9a825;
+}
+
+.btn:disabled {
+  background-color: #9e9e9e;
+  box-shadow: 0 4px 0 #757575;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+/* 진행 중에는 시작 버튼 숨기기 */
+.hidden {
+  display: none !important;
+}
+
+#countdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 15rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.4);
+  z-index: 100;
+  pointer-events: none;
+  text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+#pause-screen,
+#game-over-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+}
+
+#game-over-desc {
+  font-size: 1.5rem;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

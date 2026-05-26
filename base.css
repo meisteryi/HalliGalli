@@ -1,0 +1,121 @@
+/* 기본 변수 및 공통 초기화 */
+:root {
+  --bg-color: #2e7d32;
+  --text-color: #ffffff;
+  --card-bg: #ffffff;
+  --bell-color: #d32f2f;
+  --bell-shadow: #b71c1c;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family:
+    'Pretendard',
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    Roboto,
+    sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  width: 100%;
+  height: 100%;
+  animation: fadeIn 0.3s ease-out;
+  position: relative;
+  z-index: 10;
+}
+
+.screen p {
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 게임 타이틀 꾸미기 */
+.screen h1 {
+  font-size: 4.5rem;
+  text-align: center;
+  color: #fff;
+  text-shadow:
+    0 6px 0 #b71c1c,
+    0 10px 20px rgba(0, 0, 0, 0.5);
+  font-weight: 900;
+  letter-spacing: 2px;
+  margin-bottom: -10px;
+  animation: titleBounce 2s infinite ease-in-out;
+}
+
+.hidden {
+  display: none !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes titleBounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-15px) rotate(3deg);
+  }
+}
+
+/* 떠다니는 배경 과일 */
+.floating-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none; /* 클릭 방해 금지 */
+  z-index: 1;
+  overflow: hidden;
+}
+
+.floating-fruit {
+  position: absolute;
+  opacity: 0.15; /* 보일 듯 말 듯 반투명하게 */
+  animation: floatAround linear infinite;
+}
+
+@keyframes floatAround {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  33% {
+    transform: translate(40px, -60px) rotate(120deg);
+  }
+  66% {
+    transform: translate(-30px, 40px) rotate(240deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(360deg);
+  }
+}

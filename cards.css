@@ -1,0 +1,159 @@
+/* 카드 및 덱 요소 */
+.turn-card {
+  width: 80px;
+  height: 120px;
+  background-color: #fbc02d;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 3.5rem;
+  font-family: '궁서', 'Gungsuh', 'Nanum Pen Script', serif;
+  color: #000;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  border: 2px solid #f9a825;
+  position: relative;
+  overflow: hidden;
+}
+
+.turn-card:hover {
+  transform: translateY(-10px);
+}
+
+.turn-card:active {
+  transform: scale(0.95);
+}
+
+.turn-card.revealed {
+  background-color: white;
+  border: 2px dashed rgba(0, 0, 0, 0.2);
+  cursor: default;
+  transform: none !important;
+}
+
+/* 공통 카드 뒷면 패턴 및 글씨 */
+.card-back {
+  background-color: #d32f2f;
+  background-image: repeating-linear-gradient(
+    45deg,
+    #d32f2f,
+    #d32f2f 10px,
+    #b71c1c 10px,
+    #b71c1c 20px
+  );
+  border: 2px solid #900000;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-back::after {
+  content: '할리갈리';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  font-family: '굴림', 'Gulim', '굴림체', 'GulimChe', sans-serif;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #d32f2f;
+  background: #ffffff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
+
+.opponent-area .card-back::after {
+  font-size: 0.8rem;
+  padding: 3px 6px;
+}
+
+.deck-slot {
+  width: 120px;
+  height: 160px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.deck-slot:hover {
+  transform: translateY(-5px);
+}
+.deck-slot:active {
+  transform: scale(0.95);
+}
+
+.opponent-area .deck-slot {
+  width: 90px;
+  height: 120px;
+  cursor: default;
+}
+
+.opponent-area .deck-slot:hover,
+.opponent-area .deck-slot:active {
+  transform: none;
+}
+
+.cards-container {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+}
+
+.player-area .cards-container {
+  position: relative;
+  display: block;
+  width: 180px; /* 내 덱과 낸 카드가 가로로 퍼질 공간 확보 */
+  height: 200px; /* 뒤집힌 카드가 위로 올라갈 공간 확보 */
+  margin: 0 auto;
+}
+
+.player-area .deck-slot {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.player-area .card-slot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: auto;
+  z-index: 2;
+}
+
+.card-slot {
+  width: 120px;
+  height: 160px;
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2.5rem;
+  color: #000;
+  text-align: center;
+  line-height: 1.2;
+  padding: 10px;
+  border: 2px dashed rgba(0, 0, 0, 0.1);
+}
+
+.opponent-area .card-slot {
+  width: 90px;
+  height: 120px;
+  font-size: 2rem;
+}
+
+.card-content {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+}

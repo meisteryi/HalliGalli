@@ -1,0 +1,260 @@
+/* 화면 구역 및 플레이어 원형 배치 레이아웃 */
+.player-select {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 80%;
+  max-width: 300px;
+}
+
+.turn-cards-container {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+#game-container {
+  width: 100%;
+  max-width: 600px;
+  height: 100%;
+  margin: 0 auto;
+  animation: fadeIn 0.3s ease-out;
+  position: relative;
+  z-index: 10;
+}
+
+.area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.opponent-area {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+  gap: 5px;
+  z-index: 5;
+}
+
+/* 위치 지정 클래스 (동서남북 원형 배치) */
+.pos-2-1 {
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.pos-2-1 .cards-container {
+  transform: rotate(180deg);
+}
+.pos-3-1 {
+  top: 60px;
+  left: 5%;
+}
+.pos-3-1 .cards-container {
+  transform: rotate(135deg);
+}
+.pos-3-2 {
+  top: 60px;
+  right: 5%;
+}
+.pos-3-2 .cards-container {
+  transform: rotate(-135deg);
+}
+.pos-4-1 {
+  top: 40%;
+  left: 10px;
+  transform: translateY(-50%);
+}
+.pos-4-1 .cards-container {
+  transform: rotate(90deg);
+}
+.pos-4-2 {
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.pos-4-2 .cards-container {
+  transform: rotate(180deg);
+}
+.pos-4-3 {
+  top: 40%;
+  right: 10px;
+  transform: translateY(-50%);
+}
+.pos-4-3 .cards-container {
+  transform: rotate(-90deg);
+}
+.pos-5-1 {
+  top: 45%;
+  left: 10px;
+  transform: translateY(-50%);
+}
+.pos-5-1 .cards-container {
+  transform: rotate(90deg);
+}
+.pos-5-2 {
+  top: 40px;
+  left: 25%;
+  transform: translateX(-50%);
+}
+.pos-5-2 .cards-container {
+  transform: rotate(145deg);
+}
+.pos-5-3 {
+  top: 40px;
+  left: 75%;
+  transform: translateX(-50%);
+}
+.pos-5-3 .cards-container {
+  transform: rotate(-145deg);
+}
+.pos-5-4 {
+  top: 45%;
+  right: 10px;
+  transform: translateY(-50%);
+}
+.pos-5-4 .cards-container {
+  transform: rotate(-90deg);
+}
+.pos-6-1 {
+  top: 60%;
+  left: 5%;
+  transform: translateY(-50%);
+}
+.pos-6-1 .cards-container {
+  transform: rotate(45deg);
+}
+.pos-6-2 {
+  top: 25%;
+  left: 15%;
+  transform: translateY(-50%);
+}
+.pos-6-2 .cards-container {
+  transform: rotate(135deg);
+}
+.pos-6-3 {
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.pos-6-3 .cards-container {
+  transform: rotate(180deg);
+}
+.pos-6-4 {
+  top: 25%;
+  right: 15%;
+  transform: translateY(-50%);
+}
+.pos-6-4 .cards-container {
+  transform: rotate(-135deg);
+}
+.pos-6-5 {
+  top: 60%;
+  right: 5%;
+  transform: translateY(-50%);
+}
+.pos-6-5 .cards-container {
+  transform: rotate(-45deg);
+}
+.pos-7-1 {
+  top: 65%;
+  left: 5%;
+  transform: translateY(-50%);
+}
+.pos-7-1 .cards-container {
+  transform: rotate(60deg);
+}
+.pos-7-2 {
+  top: 35%;
+  left: 5%;
+  transform: translateY(-50%);
+}
+.pos-7-2 .cards-container {
+  transform: rotate(110deg);
+}
+.pos-7-3 {
+  top: 30px;
+  left: 30%;
+  transform: translateX(-50%);
+}
+.pos-7-3 .cards-container {
+  transform: rotate(150deg);
+}
+.pos-7-4 {
+  top: 30px;
+  left: 70%;
+  transform: translateX(-50%);
+}
+.pos-7-4 .cards-container {
+  transform: rotate(-150deg);
+}
+.pos-7-5 {
+  top: 35%;
+  right: 5%;
+  transform: translateY(-50%);
+}
+.pos-7-5 .cards-container {
+  transform: rotate(-110deg);
+}
+.pos-7-6 {
+  top: 65%;
+  right: 5%;
+  transform: translateY(-50%);
+}
+.pos-7-6 .cards-container {
+  transform: rotate(-60deg);
+}
+
+.player-area {
+  justify-content: flex-end;
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 350px;
+  z-index: 5;
+}
+
+.center-area {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  z-index: 10;
+}
+
+#countdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 15rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.4);
+  z-index: 100;
+  pointer-events: none;
+  text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+#pause-screen,
+#game-over-screen,
+#confirm-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+}
