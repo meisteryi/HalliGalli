@@ -5,6 +5,7 @@ const firebaseConfig = {
   authDomain: 'halligalli-80827.firebaseapp.com',
   projectId: 'halligalli-80827',
   storageBucket: 'halligalli-80827.firebasestorage.app',
+  databaseURL: 'https://halligalli-80827-default-rtdb.firebaseio.com',
   messagingSenderId: '769030189216',
   appId: '1:769030189216:web:af2830bc676eb1d6ee99c5',
 };

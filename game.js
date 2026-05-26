@@ -195,6 +195,16 @@ function enterLobby() {
     startBtn.innerText = '방장의 시작 대기중...';
   }
 
+  // 파이어베이스 방 상태 감지 (게임 시작 신호 대기)
+  db.ref('rooms/' + currentRoomId + '/status').on('value', (snapshot) => {
+    if (snapshot.val() === 'playing') {
+      // 게임 시작 신호를 받으면 대기실 리스너들을 해제하고 게임 화면으로 이동
+      db.ref('rooms/' + currentRoomId + '/status').off();
+      db.ref('rooms/' + currentRoomId + '/players').off();
+      transitionToMultiGame();
+    }
+  });
+
   // Firebase 실시간 플레이어 접속 감지 (리스너 등록)
   db.ref('rooms/' + currentRoomId + '/players').on('value', (snapshot) => {
     const playersData = snapshot.val();
@@ -244,9 +254,69 @@ function leaveRoom() {
 }
 
 function startMultiGame() {
-  alert(
-    `방 [${currentRoomId}] 게임을 시작합니다!\n(Firebase 연동 후 진행 예정)`,
-  );
+  if (!isHost) return;
+
+  const playerNames = Object.keys(roomState.players);
+  if (playerNames.length < 2) {
+    return alert('최소 2명 이상의 플레이어가 접속해야 시작할 수 있습니다!');
+  }
+
+  // 1. 게임 초기 상태 구성 (전체 덱 셔플)
+  const fullDeck = generateDeck();
+  let turn = 0;
+  const numPlayers = playerNames.length;
+
+  let playersData = {};
+  playerNames.forEach((name, index) => {
+    playersData[name] = {
+      id: index,
+      name: name,
+      deck: [], // 테이블(바닥) 카드는 비어있으므로 파이어베이스 특성상 업로드 시 생략됨
+      isActive: true,
+    };
+  });
+
+  // 2. 플레이어들에게 골고루 카드 분배
+  while (fullDeck.length > 0) {
+    playersData[playerNames[turn % numPlayers]].deck.push(fullDeck.shift());
+    turn++;
+  }
+
+  // 3. 시작 턴 무작위 선정
+  const firstTurn = playerNames[Math.floor(Math.random() * numPlayers)];
+
+  const initialGameState = {
+    players: playersData,
+    currentTurn: firstTurn,
+    lastBellRinger: '',
+    message: '게임이 시작되었습니다!',
+  };
+
+  // 4. 파이어베이스 업데이트 (이 순간 모든 접속자의 화면이 게임으로 넘어감)
+  db.ref('rooms/' + currentRoomId).update({
+    status: 'playing',
+    gameState: initialGameState,
+  });
+}
+
+// === 멀티 플레이 게임 화면 및 실시간 동기화 ===
+
+function transitionToMultiGame() {
+  document.getElementById('multi-lobby-screen').classList.add('hidden');
+  document.getElementById('game-container').classList.remove('hidden');
+
+  // 게임 상태 실시간 동기화 리스너 (가장 중요!)
+  db.ref('rooms/' + currentRoomId + '/gameState').on('value', (snapshot) => {
+    const gameState = snapshot.val();
+    if (gameState) {
+      updateMultiUI(gameState);
+    }
+  });
+}
+
+function updateMultiUI(gameState) {
+  console.log('현재 실시간 게임 상태:', gameState);
+  // 다음 단계: 받은 데이터를 바탕으로 상대방들과 내 UI 카드를 화면에 그리는 로직 추가 예정
 }
 
 // === 싱글 플레이 전용 로직 ===
