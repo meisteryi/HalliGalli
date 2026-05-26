@@ -24,12 +24,22 @@ function resetToStartScreen() {
   document.getElementById('turn-screen').classList.add('hidden');
   document.getElementById('game-container').classList.add('hidden');
   document.getElementById('game-over-screen').classList.add('hidden');
+  players = [];
   domStartBtn.classList.add('hidden');
   domMessage.innerText = '게임 시작 버튼을 눌러주세요!';
   isPlaying = false;
   isPaused = false;
   clearTimeout(comFlipTimer);
   clearTimeout(comReactionTimer);
+
+  // 멀티 플레이 종료 시 파이어베이스 통신 및 상태 완벽 초기화
+  if (currentRoomId) {
+    db.ref('rooms/' + currentRoomId + '/gameState').off();
+    db.ref('rooms/' + currentRoomId + '/players').off();
+    db.ref('rooms/' + currentRoomId + '/status').off();
+    currentRoomId = '';
+    isHost = false;
+  }
 }
 
 function pauseGame() {
@@ -37,14 +47,44 @@ function pauseGame() {
     resetToStartScreen();
     return;
   }
+
+  // 멀티 플레이일 경우 파이어베이스로 일시정지 상태 전송
+  if (gameMode === 'multi') {
+    db.ref('rooms/' + currentRoomId + '/gameState').update({
+      isPaused: true,
+      pausedBy: myNickname,
+    });
+    return;
+  }
+
   isPaused = true;
   clearTimeout(comFlipTimer);
   clearTimeout(comReactionTimer);
+
+  // 싱글 플레이용 일시정지 UI 초기화 (멀티 플레이 잔재 제거)
+  const domPauseTitle = document.getElementById('pause-title');
+  if (domPauseTitle) {
+    domPauseTitle.innerText = '일시정지';
+    domPauseTitle.style.fontSize = '';
+    domPauseTitle.style.whiteSpace = '';
+    document.getElementById('resume-btn').classList.remove('hidden');
+    document.getElementById('quit-btn').classList.remove('hidden');
+  }
+
   document.getElementById('pause-screen').classList.remove('hidden');
   updateUI();
 }
 
 function resumeGame() {
+  // 멀티 플레이일 경우 파이어베이스로 계속하기 상태 전송
+  if (gameMode === 'multi') {
+    db.ref('rooms/' + currentRoomId + '/gameState').update({
+      isPaused: false,
+      pausedBy: '',
+    });
+    return;
+  }
+
   isPaused = false;
   document.getElementById('pause-screen').classList.add('hidden');
   updateUI();
@@ -59,6 +99,22 @@ function resumeGame() {
 }
 
 function quitGame() {
+  // 멀티 플레이일 경우
+  if (gameMode === 'multi') {
+    if (isHost) {
+      // 방장일 경우: 방 전체 종료 신호 전송
+      db.ref('rooms/' + currentRoomId + '/gameState').update({
+        hostQuit: true,
+      });
+    } else {
+      // 방장이 아닐 경우: 조용히 내 정보만 지우고 나가기
+      db.ref('rooms/' + currentRoomId + '/players/' + myNickname).remove();
+      document.getElementById('pause-screen').classList.add('hidden');
+      resetToStartScreen();
+    }
+    return;
+  }
+
   document.getElementById('pause-screen').classList.add('hidden');
   resetToStartScreen();
 }
@@ -290,6 +346,9 @@ function startMultiGame() {
     currentTurn: firstTurn,
     lastBellRinger: '',
     message: '게임이 시작되었습니다!',
+    isPaused: false,
+    pausedBy: '',
+    hostQuit: false,
   };
 
   // 4. 파이어베이스 업데이트 (이 순간 모든 접속자의 화면이 게임으로 넘어감)
@@ -314,9 +373,282 @@ function transitionToMultiGame() {
   });
 }
 
+let localBellRinger = '';
+let pendingGameState = null;
+let previousTableCount = 0;
+
 function updateMultiUI(gameState) {
-  console.log('현재 실시간 게임 상태:', gameState);
-  // 다음 단계: 받은 데이터를 바탕으로 상대방들과 내 UI 카드를 화면에 그리는 로직 추가 예정
+  if (!gameState) return;
+
+  // 0. 방장이 종료한 경우 (모두에게 적용)
+  if (gameState.hostQuit) {
+    db.ref('rooms/' + currentRoomId + '/gameState').off(); // 리스너 해제
+    document.getElementById('pause-screen').classList.add('hidden'); // 일시정지 창 닫기
+    showMessage('방장에 의해 게임이 종료되었습니다.');
+    setTimeout(() => {
+      if (isHost) db.ref('rooms/' + currentRoomId).remove(); // 방장이 DB에서 방 삭제
+      resetToStartScreen();
+    }, 3000);
+    return;
+  }
+
+  // 0.5. 일시정지 상태 실시간 렌더링
+  const domPauseScreen = document.getElementById('pause-screen');
+  const domPauseTitle = document.getElementById('pause-title');
+  const domResumeBtn = document.getElementById('resume-btn');
+  const domQuitBtn = document.getElementById('quit-btn');
+
+  if (gameState.isPaused) {
+    isPaused = true;
+    domPauseScreen.classList.remove('hidden');
+    if (gameState.pausedBy === myNickname) {
+      domPauseTitle.innerText = '일시정지';
+      domPauseTitle.style.fontSize = '';
+      domPauseTitle.style.whiteSpace = '';
+      domResumeBtn.classList.remove('hidden');
+      domQuitBtn.classList.remove('hidden');
+    } else {
+      domPauseTitle.innerText = `${gameState.pausedBy}님이\n게임을 일시정지했습니다.`;
+      domPauseTitle.style.fontSize = '2.5rem';
+      domPauseTitle.style.whiteSpace = 'pre-wrap';
+      domResumeBtn.classList.add('hidden'); // 남이 정지한 건 내가 풀 수 없음
+      if (isHost)
+        domQuitBtn.classList.remove('hidden'); // 하지만 방장은 강제 종료 가능!
+      else domQuitBtn.classList.add('hidden');
+    }
+  } else {
+    isPaused = false;
+    domPauseScreen.classList.add('hidden');
+  }
+
+  // 1. 최초 1회 로컬 UI 세팅 (내 위치를 맨 아래 0번으로 고정하고 시계 방향으로 배치)
+  if (players.length === 0) {
+    setupMultiplayerUI(gameState);
+  }
+
+  // 종 치기 이벤트 감지 및 애니메이션 (가장 먼저 종을 친 1명만 판정)
+  if (
+    gameState.lastBellRinger &&
+    gameState.lastBellRinger !== localBellRinger
+  ) {
+    localBellRinger = gameState.lastBellRinger;
+    handleBellRingEventMulti(gameState.lastBellRinger);
+  } else if (!gameState.lastBellRinger && localBellRinger !== '') {
+    localBellRinger = '';
+  }
+
+  // 애니메이션(잠금) 중이면 화면을 즉시 갱신하지 않고 2초 뒤로 미룸 (새치기 및 화면 끊김 방지)
+  if (isLocked) {
+    pendingGameState = gameState;
+    return;
+  }
+
+  applyGameStateMulti(gameState);
+}
+
+function applyGameStateMulti(gameState) {
+  let newTableCount = 0;
+
+  players.forEach((p) => {
+    const sData = gameState.players[p.name];
+    if (sData) {
+      p.deck = sData.deck || [];
+      p.table = sData.table || [];
+      p.isActive = sData.isActive;
+      newTableCount += p.table.length;
+    }
+  });
+
+  // 누군가 카드를 내서 바닥 카드가 늘어났다면(상대방 턴 포함) 카드 뒤집는 소리 재생
+  if (newTableCount > previousTableCount) {
+    flipSound.currentTime = 0;
+    flipSound.play().catch(() => {});
+  }
+  previousTableCount = newTableCount;
+
+  const turnIndex = players.findIndex((p) => p.name === gameState.currentTurn);
+  if (turnIndex !== -1) currentTurn = turnIndex;
+
+  if (gameState.message) {
+    showMessage(gameState.message);
+  }
+
+  updateUI();
+  checkGameOver();
+}
+
+function handleBellRingEventMulti(ringerName) {
+  isLocked = true; // 종을 친 순간부터 2초 동안 모두의 동작(버튼, 뒤집기) 잠금
+
+  bellSound.currentTime = 0;
+  bellSound.play().catch(() => {});
+
+  let ringerId = players.findIndex((p) => p.name === ringerName);
+  let correct = isExactlyFive();
+
+  let ringMsg = '';
+  if (correct) {
+    animateCardsToWinner(ringerId);
+    ringMsg =
+      ringerId === 0
+        ? '🎉 내가 가장 먼저 정답을 맞췄습니다!'
+        : `👤 ${ringerName}님이 가장 먼저 정답을 맞췄습니다!`;
+  } else {
+    ringMsg =
+      ringerId === 0
+        ? '❌ 실수! 상대방들에게 카드를 1장씩 줍니다.'
+        : `👤 ${ringerName}님이 실수했습니다! 카드를 나눠 받습니다.`;
+  }
+
+  showMessage(ringMsg);
+
+  // 카운트다운 이펙트
+  const domCountdown = document.getElementById('countdown');
+  domCountdown.innerText = '2';
+  domCountdown.classList.remove('hidden');
+  setTimeout(() => {
+    domCountdown.innerText = '1';
+  }, 1000);
+
+  // 2초 후 잠금 해제 및 미뤄둔 화면 갱신 적용
+  setTimeout(() => {
+    domCountdown.classList.add('hidden');
+    if (domMessage.innerText === ringMsg) {
+      showMessage('');
+    }
+    isLocked = false;
+    if (pendingGameState) {
+      applyGameStateMulti(pendingGameState);
+      pendingGameState = null;
+    }
+  }, 2000);
+}
+
+function setupMultiplayerUI(gameState) {
+  isPlaying = true;
+  isLocked = false;
+  players = [];
+  previousTableCount = 0;
+
+  const playerNames = Object.keys(gameState.players);
+  numPlayers = playerNames.length;
+
+  // 내 닉네임을 기준으로 0번에 배치하고 나머지는 순서대로 배치
+  const myIndex = playerNames.indexOf(myNickname);
+
+  for (let i = 0; i < numPlayers; i++) {
+    const targetName = playerNames[(myIndex + i) % numPlayers];
+    players.push({
+      id: i,
+      isUser: i === 0,
+      name: targetName,
+      deck: [],
+      table: [],
+      isActive: true,
+      domCard: i === 0 ? domUserCard : null,
+      domDeck: i === 0 ? domUserDeck : null,
+      domCount: i === 0 ? domUserCount : null,
+      domInfo: i === 0 ? domUserInfo : null,
+    });
+  }
+
+  setupOpponentsUI();
+  document.getElementById('start-btn').classList.add('hidden');
+}
+
+function userFlipMulti() {
+  let p = players[0];
+  if (p.deck.length === 0) return;
+
+  let newDeck = [...p.deck];
+  let newTable = [...p.table];
+  newTable.push(newDeck.shift());
+
+  let nextTurnName = getNextTurnMulti();
+
+  db.ref('rooms/' + currentRoomId + '/gameState').update({
+    [`players/${myNickname}/deck`]: newDeck,
+    [`players/${myNickname}/table`]: newTable,
+    currentTurn: nextTurnName,
+    message: '',
+  });
+
+  flipSound.currentTime = 0;
+  flipSound.play().catch(() => {});
+}
+
+function getNextTurnMulti() {
+  let nextTurn = currentTurn;
+  let startingTurn = currentTurn;
+  let found = false;
+  do {
+    nextTurn = (nextTurn + 1) % numPlayers;
+    if (players[nextTurn].isActive && players[nextTurn].deck.length > 0) {
+      found = true;
+      break;
+    }
+  } while (nextTurn !== startingTurn);
+  return found ? players[nextTurn].name : players[startingTurn].name;
+}
+
+function userRingBellMulti() {
+  if (isLocked) return;
+
+  const bellRef = db.ref(
+    'rooms/' + currentRoomId + '/gameState/lastBellRinger',
+  );
+
+  bellRef.transaction(
+    (currentValue) => {
+      if (!currentValue || currentValue === '') {
+        return myNickname;
+      }
+      return;
+    },
+    (error, committed, snapshot) => {
+      if (committed && snapshot.val() === myNickname) {
+        executeRingBellMulti();
+      }
+    },
+  );
+}
+
+function executeRingBellMulti() {
+  let correct = isExactlyFive();
+  let updates = {};
+  let allTableCards = [];
+
+  players.forEach((p) => {
+    allTableCards = allTableCards.concat(p.table);
+    updates[`players/${p.name}/table`] = []; // 모든 플레이어 바닥 비우기
+  });
+
+  if (correct) {
+    // 정답: 바닥 카드 모두 내 덱으로
+    let myNewDeck = [...players[0].deck, ...allTableCards];
+    updates[`players/${myNickname}/deck`] = myNewDeck;
+    updates[`currentTurn`] = myNickname; // 맞춘 사람이 다음 턴
+  } else {
+    // 오답: 다른 사람들에게 내 카드 1장씩 주기
+    let myNewDeck = [...players[0].deck];
+    players.forEach((p) => {
+      if (!p.isUser && p.isActive && myNewDeck.length > 0) {
+        let pNewDeck = [...p.deck];
+        pNewDeck.unshift(myNewDeck.shift());
+        updates[`players/${p.name}/deck`] = pNewDeck;
+      }
+    });
+    updates[`players/${myNickname}/deck`] = myNewDeck;
+
+    let nextTurn = (currentTurn + 1) % numPlayers;
+    updates[`currentTurn`] = players[nextTurn].name;
+  }
+
+  // 애니메이션과 카운트다운(2초)이 모두 끝난 시점에 맞춰서 DB 카드 분배 갱신
+  setTimeout(() => {
+    updates[`lastBellRinger`] = '';
+    db.ref('rooms/' + currentRoomId + '/gameState').update(updates);
+  }, 2000);
 }
 
 // === 싱글 플레이 전용 로직 ===
@@ -440,6 +772,10 @@ function startGamePhase(sunPlayer) {
 
 function userFlip() {
   if (!isPlaying || currentTurn !== 0 || isLocked || isPaused) return;
+  if (gameMode === 'multi') {
+    userFlipMulti();
+    return;
+  }
   let p = players[0];
   if (p.deck.length > 0) {
     p.table.push(p.deck.shift());
@@ -540,6 +876,10 @@ function checkAndScheduleComReaction() {
 
 function userRingBell() {
   if (!isPlaying || !players[0].isActive || isLocked || isPaused) return;
+  if (gameMode === 'multi') {
+    userRingBellMulti();
+    return;
+  }
   executeRingBell(0);
 }
 
