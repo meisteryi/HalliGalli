@@ -126,10 +126,25 @@ function cancelNickname() {
 function createRoom() {
   isHost = true;
 
-  // 임시: 6자리 영문+숫자 랜덤 방 코드 생성 (이후 파이어베이스에서 생성)
+  // 6자리 영문+숫자 랜덤 방 코드 생성
   currentRoomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-  enterLobby();
+  // [로컬 상태] 방을 생성하면서 내 정보를 방장으로 세팅
+  roomState = {
+    status: 'waiting',
+    players: {},
+  };
+  roomState.players[myNickname] = { isHost: true };
+
+  // Firebase에 방 생성 및 입장
+  db.ref('rooms/' + currentRoomId)
+    .set(roomState)
+    .then(() => {
+      enterLobby();
+    })
+    .catch((error) => {
+      alert('방 생성에 실패했습니다: ' + error.message);
+    });
 }
 
 function joinRoom() {
@@ -143,8 +158,27 @@ function joinRoom() {
   isHost = false;
   currentRoomId = code;
 
-  // 임시: 코드가 유효한지 서버에서 확인했다고 가정
-  enterLobby();
+  // Firebase에서 방 존재 여부 확인 후 입장
+  db.ref('rooms/' + currentRoomId)
+    .once('value')
+    .then((snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        if (data.status !== 'waiting')
+          return alert('이미 게임이 시작된 방입니다!');
+        if (data.players && data.players[myNickname])
+          return alert('이미 방에 같은 닉네임이 있습니다!');
+
+        // 내 정보를 Firebase에 추가 후 입장
+        db.ref('rooms/' + currentRoomId + '/players/' + myNickname)
+          .set({
+            isHost: false,
+          })
+          .then(() => enterLobby());
+      } else {
+        alert('존재하지 않는 방 코드입니다!');
+      }
+    });
 }
 
 function enterLobby() {
@@ -161,8 +195,25 @@ function enterLobby() {
     startBtn.innerText = '방장의 시작 대기중...';
   }
 
-  // 임시: 나 자신을 대기실 목록에 렌더링 (이후 파이어베이스 실시간 동기화로 변경)
-  renderLobbyPlayers([{ name: myNickname, isHost: isHost }]);
+  // Firebase 실시간 플레이어 접속 감지 (리스너 등록)
+  db.ref('rooms/' + currentRoomId + '/players').on('value', (snapshot) => {
+    const playersData = snapshot.val();
+    if (playersData) {
+      roomState.players = playersData; // 로컬 상태 업데이트
+      updateLobbyUI(); // 화면 갱신
+    } else {
+      // 방이 폭파된 경우 예외 처리 (나중에 추가)
+    }
+  });
+}
+
+// 데이터(roomState)를 기반으로 화면을 다시 그리는 전용 함수
+function updateLobbyUI() {
+  const playerList = Object.keys(roomState.players).map((key) => ({
+    name: key,
+    isHost: roomState.players[key].isHost,
+  }));
+  renderLobbyPlayers(playerList);
 }
 
 function renderLobbyPlayers(playerList) {
@@ -179,7 +230,15 @@ function renderLobbyPlayers(playerList) {
 }
 
 function leaveRoom() {
-  // 임시: 방 퇴장 로직 (파이어베이스 연결 해제)
+  // 대기실 퇴장 시 Firebase에서 내 데이터 삭제 및 리스너 해제
+  db.ref('rooms/' + currentRoomId + '/players').off();
+  db.ref('rooms/' + currentRoomId + '/players/' + myNickname).remove();
+
+  // 방 퇴장 시 내 정보를 데이터에서 삭제
+  if (roomState.players && roomState.players[myNickname]) {
+    delete roomState.players[myNickname];
+  }
+
   document.getElementById('multi-lobby-screen').classList.add('hidden');
   document.getElementById('multi-entry-screen').classList.remove('hidden');
 }
