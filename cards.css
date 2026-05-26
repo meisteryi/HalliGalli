@@ -146,7 +146,8 @@
 .opponent-area .card-slot {
   width: 90px;
   height: 120px;
-  font-size: 2rem;
+  font-size: 1.6rem;
+  padding: 8px;
 }
 
 .card-content {
@@ -154,8 +155,10 @@
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
+  align-content: center;
   gap: 5px;
   width: 100%;
+  height: 100%;
 }
 
 .card-content span {
