@@ -157,3 +157,32 @@ function createFloatingFruits() {
 }
 
 document.addEventListener('DOMContentLoaded', createFloatingFruits);
+
+// 승리 시 폭죽 애니메이션 (Confetti)
+function showFireworks() {
+  const colors = [
+    '#fbc02d',
+    '#d32f2f',
+    '#4caf50',
+    '#2196f3',
+    '#9c27b0',
+    '#ff9800',
+  ];
+  for (let i = 0; i < 150; i++) {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti';
+    confetti.style.left = Math.random() * 100 + 'vw';
+    confetti.style.backgroundColor =
+      colors[Math.floor(Math.random() * colors.length)];
+    confetti.style.animationDuration = Math.random() * 2 + 2 + 's';
+    confetti.style.animationDelay = Math.random() * 2 + 's';
+
+    // 50% 확률로 동그란 모양 적용
+    if (Math.random() > 0.5) confetti.style.borderRadius = '50%';
+
+    document.body.appendChild(confetti);
+
+    // 애니메이션이 끝나면 DOM에서 깔끔하게 제거
+    setTimeout(() => confetti.remove(), 5000);
+  }
+}

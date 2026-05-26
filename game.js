@@ -1055,4 +1055,9 @@ function showGameOverModal(title, desc) {
   document.getElementById('game-over-title').innerText = title;
   document.getElementById('game-over-desc').innerText = desc;
   document.getElementById('game-over-screen').classList.remove('hidden');
+
+  // 승리했을 경우 폭죽 이펙트 실행
+  if (title.includes('승리')) {
+    if (typeof showFireworks === 'function') showFireworks();
+  }
 }
