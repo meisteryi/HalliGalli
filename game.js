@@ -376,6 +376,10 @@ function transitionToMultiGame() {
 let localBellRinger = '';
 let pendingGameState = null;
 let previousTableCount = 0;
+let isLocalFlip = false;
+let localFlipTimer = null;
+let isLocalBell = false;
+let localBellTimer = null;
 
 function updateMultiUI(gameState) {
   if (!gameState) return;
@@ -467,8 +471,10 @@ function applyGameStateMulti(gameState) {
 
   // 누군가 카드를 내서 바닥 카드가 늘어났다면(상대방 턴 포함) 카드 뒤집는 소리 재생
   if (newTableCount > previousTableCount) {
-    flipSound.currentTime = 0;
-    flipSound.play().catch(() => {});
+    if (!isLocalFlip) {
+      flipSound.currentTime = 0;
+      flipSound.play().catch(() => {});
+    }
   }
   previousTableCount = newTableCount;
 
@@ -486,8 +492,10 @@ function applyGameStateMulti(gameState) {
 function handleBellRingEventMulti(ringerName) {
   isLocked = true; // 종을 친 순간부터 2초 동안 모두의 동작(버튼, 뒤집기) 잠금
 
-  bellSound.currentTime = 0;
-  bellSound.play().catch(() => {});
+  if (!isLocalBell) {
+    bellSound.currentTime = 0;
+    bellSound.play().catch(() => {});
+  }
 
   let ringerId = players.findIndex((p) => p.name === ringerName);
   let correct = isExactlyFive();
@@ -581,6 +589,11 @@ function userFlipMulti() {
 
   flipSound.currentTime = 0;
   flipSound.play().catch(() => {});
+  isLocalFlip = true;
+  clearTimeout(localFlipTimer);
+  localFlipTimer = setTimeout(() => {
+    isLocalFlip = false;
+  }, 300);
 }
 
 function getNextTurnMulti() {
@@ -599,6 +612,14 @@ function getNextTurnMulti() {
 
 function userRingBellMulti() {
   if (isLocked) return;
+
+  bellSound.currentTime = 0;
+  bellSound.play().catch(() => {});
+  isLocalBell = true;
+  clearTimeout(localBellTimer);
+  localBellTimer = setTimeout(() => {
+    isLocalBell = false;
+  }, 500);
 
   const bellRef = db.ref(
     'rooms/' + currentRoomId + '/gameState/lastBellRinger',
