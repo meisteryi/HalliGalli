@@ -380,70 +380,76 @@ let previousTableCount = 0;
 function updateMultiUI(gameState) {
   if (!gameState) return;
 
-  // 0. 방장이 종료한 경우 (모두에게 적용)
-  if (gameState.hostQuit) {
-    db.ref('rooms/' + currentRoomId + '/gameState').off(); // 리스너 해제
-    document.getElementById('pause-screen').classList.add('hidden'); // 일시정지 창 닫기
-    showMessage('방장에 의해 게임이 종료되었습니다.');
-    setTimeout(() => {
-      if (isHost) db.ref('rooms/' + currentRoomId).remove(); // 방장이 DB에서 방 삭제
-      resetToStartScreen();
-    }, 3000);
-    return;
-  }
-
-  // 0.5. 일시정지 상태 실시간 렌더링
-  const domPauseScreen = document.getElementById('pause-screen');
-  const domPauseTitle = document.getElementById('pause-title');
-  const domResumeBtn = document.getElementById('resume-btn');
-  const domQuitBtn = document.getElementById('quit-btn');
-
-  if (gameState.isPaused) {
-    isPaused = true;
-    domPauseScreen.classList.remove('hidden');
-    if (gameState.pausedBy === myNickname) {
-      domPauseTitle.innerText = '일시정지';
-      domPauseTitle.style.fontSize = '';
-      domPauseTitle.style.whiteSpace = '';
-      domResumeBtn.classList.remove('hidden');
-      domQuitBtn.classList.remove('hidden');
-    } else {
-      domPauseTitle.innerText = `${gameState.pausedBy}님이\n게임을 일시정지했습니다.`;
-      domPauseTitle.style.fontSize = '2.5rem';
-      domPauseTitle.style.whiteSpace = 'pre-wrap';
-      domResumeBtn.classList.add('hidden'); // 남이 정지한 건 내가 풀 수 없음
-      if (isHost)
-        domQuitBtn.classList.remove('hidden'); // 하지만 방장은 강제 종료 가능!
-      else domQuitBtn.classList.add('hidden');
+  try {
+    // 0. 방장이 종료한 경우 (모두에게 적용)
+    if (gameState.hostQuit) {
+      db.ref('rooms/' + currentRoomId + '/gameState').off(); // 리스너 해제
+      document.getElementById('pause-screen').classList.add('hidden'); // 일시정지 창 닫기
+      showMessage('방장에 의해 게임이 종료되었습니다.');
+      setTimeout(() => {
+        if (isHost) db.ref('rooms/' + currentRoomId).remove(); // 방장이 DB에서 방 삭제
+        resetToStartScreen();
+      }, 3000);
+      return;
     }
-  } else {
-    isPaused = false;
-    domPauseScreen.classList.add('hidden');
-  }
 
-  // 1. 최초 1회 로컬 UI 세팅 (내 위치를 맨 아래 0번으로 고정하고 시계 방향으로 배치)
-  if (players.length === 0) {
-    setupMultiplayerUI(gameState);
-  }
+    // 0.5. 일시정지 상태 실시간 렌더링
+    const domPauseScreen = document.getElementById('pause-screen');
+    const domPauseTitle = document.getElementById('pause-title');
+    const domResumeBtn = document.getElementById('resume-btn');
+    const domQuitBtn = document.getElementById('quit-btn');
 
-  // 종 치기 이벤트 감지 및 애니메이션 (가장 먼저 종을 친 1명만 판정)
-  if (
-    gameState.lastBellRinger &&
-    gameState.lastBellRinger !== localBellRinger
-  ) {
-    localBellRinger = gameState.lastBellRinger;
-    handleBellRingEventMulti(gameState.lastBellRinger);
-  } else if (!gameState.lastBellRinger && localBellRinger !== '') {
-    localBellRinger = '';
-  }
+    if (gameState.isPaused) {
+      isPaused = true;
+      domPauseScreen.classList.remove('hidden');
+      if (gameState.pausedBy === myNickname) {
+        domPauseTitle.innerText = '일시정지';
+        domPauseTitle.style.fontSize = '';
+        domPauseTitle.style.whiteSpace = '';
+        domResumeBtn.classList.remove('hidden');
+        domQuitBtn.classList.remove('hidden');
+      } else {
+        domPauseTitle.innerText = `${gameState.pausedBy}님이\n게임을 일시정지했습니다.`;
+        domPauseTitle.style.fontSize = '2.5rem';
+        domPauseTitle.style.whiteSpace = 'pre-wrap';
+        domResumeBtn.classList.add('hidden'); // 남이 정지한 건 내가 풀 수 없음
+        if (isHost)
+          domQuitBtn.classList.remove('hidden'); // 하지만 방장은 강제 종료 가능!
+        else domQuitBtn.classList.add('hidden');
+      }
+    } else {
+      isPaused = false;
+      domPauseScreen.classList.add('hidden');
+    }
 
-  // 애니메이션(잠금) 중이면 화면을 즉시 갱신하지 않고 2초 뒤로 미룸 (새치기 및 화면 끊김 방지)
-  if (isLocked) {
-    pendingGameState = gameState;
-    return;
-  }
+    // 1. 최초 1회 로컬 UI 세팅 (내 위치를 맨 아래 0번으로 고정하고 시계 방향으로 배치)
+    if (players.length === 0) {
+      setupMultiplayerUI(gameState);
+    }
 
-  applyGameStateMulti(gameState);
+    // 종 치기 이벤트 감지 및 애니메이션 (가장 먼저 종을 친 1명만 판정)
+    if (
+      gameState.lastBellRinger &&
+      gameState.lastBellRinger !== localBellRinger
+    ) {
+      localBellRinger = gameState.lastBellRinger;
+      handleBellRingEventMulti(gameState.lastBellRinger);
+    } else if (!gameState.lastBellRinger && localBellRinger !== '') {
+      localBellRinger = '';
+    }
+
+    // 애니메이션(잠금) 중이면 화면을 즉시 갱신하지 않고 2초 뒤로 미룸 (새치기 및 화면 끊김 방지)
+    if (isLocked) {
+      pendingGameState = gameState;
+      return;
+    }
+
+    applyGameStateMulti(gameState);
+  } catch (error) {
+    // 만약 진짜로 코드에 오류가 있다면 화면 정중앙에 오류 내용을 띄워줍니다!
+    showMessage('오류 발생: ' + error.message);
+    console.error(error);
+  }
 }
 
 function applyGameStateMulti(gameState) {
