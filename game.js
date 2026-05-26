@@ -643,14 +643,13 @@ function userRingBellMulti() {
 function executeRingBellMulti() {
   let correct = isExactlyFive();
   let updates = {};
-  let allTableCards = [];
-
-  players.forEach((p) => {
-    allTableCards = allTableCards.concat(p.table);
-    updates[`players/${p.name}/table`] = []; // 모든 플레이어 바닥 비우기
-  });
 
   if (correct) {
+    let allTableCards = [];
+    players.forEach((p) => {
+      allTableCards = allTableCards.concat(p.table);
+      updates[`players/${p.name}/table`] = []; // 정답일 때만 바닥 비우기
+    });
     // 정답: 바닥 카드 모두 내 덱으로
     let myNewDeck = [...players[0].deck, ...allTableCards];
     updates[`players/${myNickname}/deck`] = myNewDeck;
@@ -666,9 +665,6 @@ function executeRingBellMulti() {
       }
     });
     updates[`players/${myNickname}/deck`] = myNewDeck;
-
-    let nextTurn = (currentTurn + 1) % numPlayers;
-    updates[`currentTurn`] = players[nextTurn].name;
   }
 
   // 애니메이션과 카운트다운(2초)이 모두 끝난 시점에 맞춰서 DB 카드 분배 갱신
