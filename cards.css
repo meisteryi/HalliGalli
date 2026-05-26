@@ -157,3 +157,8 @@
   gap: 5px;
   width: 100%;
 }
+
+.card-content span {
+  display: inline-block;
+  line-height: 1;
+}

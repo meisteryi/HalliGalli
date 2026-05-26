@@ -84,8 +84,8 @@ function renderCard(element, card) {
     return;
   }
   element.style.visibility = 'visible'; // 카드가 등장하면 다시 보이기
-  // 이모지를 개수만큼 반복 생성
-  let emojis = Array(card.count).fill(card.fruit).join('');
+  // 각각의 이모지를 개별 span으로 감싸서 줄바꿈(wrap)과 간격(gap)이 작동하게 수정
+  let emojis = Array(card.count).fill(`<span>${card.fruit}</span>`).join('');
   element.innerHTML = `<div class="card-content">${emojis}</div>`;
 }
 
