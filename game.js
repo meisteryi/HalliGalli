@@ -34,6 +34,20 @@ function resetToStartScreen() {
 
   // 멀티 플레이 종료 시 파이어베이스 통신 및 상태 완벽 초기화
   if (currentRoomId) {
+    if (gameMode === 'multi') {
+      if (isHost) {
+        db.ref('rooms/' + currentRoomId + '/gameState/hostQuit')
+          .onDisconnect()
+          .cancel();
+        db.ref('rooms/' + currentRoomId + '/gameState/message')
+          .onDisconnect()
+          .cancel();
+      } else {
+        db.ref('rooms/' + currentRoomId + '/gameState/leftPlayer')
+          .onDisconnect()
+          .cancel();
+      }
+    }
     db.ref('rooms/' + currentRoomId + '/gameState').off();
     db.ref('rooms/' + currentRoomId + '/players').off();
     db.ref('rooms/' + currentRoomId + '/status').off();
@@ -106,9 +120,13 @@ function quitGame() {
       // 방장일 경우: 방 전체 종료 신호 전송
       db.ref('rooms/' + currentRoomId + '/gameState').update({
         hostQuit: true,
+        message: '방장에 의해 게임이 종료되었습니다.',
       });
     } else {
-      // 방장이 아닐 경우: 조용히 내 정보만 지우고 나가기
+      // 방장이 아닐 경우: 탈주 기록을 남기고 나감
+      db.ref('rooms/' + currentRoomId + '/gameState').update({
+        leftPlayer: myNickname,
+      });
       db.ref('rooms/' + currentRoomId + '/players/' + myNickname).remove();
       document.getElementById('pause-screen').classList.add('hidden');
       resetToStartScreen();
@@ -508,6 +526,20 @@ function transitionToMultiGame() {
   document.getElementById('turn-screen').classList.add('hidden');
   document.getElementById('game-container').classList.remove('hidden');
 
+  // 비정상 종료(브라우저 닫기) 시 탈주 기록을 남김 (방장이 아닌 경우)
+  if (isHost) {
+    db.ref('rooms/' + currentRoomId + '/gameState/hostQuit')
+      .onDisconnect()
+      .set(true);
+    db.ref('rooms/' + currentRoomId + '/gameState/message')
+      .onDisconnect()
+      .set('방장에 의해 게임이 종료되었습니다.');
+  } else {
+    db.ref('rooms/' + currentRoomId + '/gameState/leftPlayer')
+      .onDisconnect()
+      .set(myNickname);
+  }
+
   // 게임 상태 실시간 동기화 리스너 (가장 중요!)
   db.ref('rooms/' + currentRoomId + '/gameState').on('value', (snapshot) => {
     const gameState = snapshot.val();
@@ -529,11 +561,17 @@ function updateMultiUI(gameState) {
   if (!gameState) return;
 
   try {
+    // 0.1. 방장이 처리하는 탈주 플레이어 감지 및 카드 재분배 로직
+    if (gameState.leftPlayer && isHost) {
+      handlePlayerLeftMulti(gameState);
+      return; // 방장이 DB를 업데이트할 것이므로 로컬 렌더링은 잠시 스킵
+    }
+
     // 0. 방장이 종료한 경우 (모두에게 적용)
     if (gameState.hostQuit) {
       db.ref('rooms/' + currentRoomId + '/gameState').off(); // 리스너 해제
       document.getElementById('pause-screen').classList.add('hidden'); // 일시정지 창 닫기
-      showMessage('방장에 의해 게임이 종료되었습니다.');
+      showMessage(gameState.message || '방장에 의해 게임이 종료되었습니다.');
       setTimeout(() => {
         if (isHost) db.ref('rooms/' + currentRoomId).remove(); // 방장이 DB에서 방 삭제
         resetToStartScreen();
@@ -598,6 +636,82 @@ function updateMultiUI(gameState) {
     showMessage('오류 발생: ' + error.message);
     console.error(error);
   }
+}
+
+function handlePlayerLeftMulti(gameState) {
+  let leftName = gameState.leftPlayer;
+  let pData = gameState.players[leftName];
+
+  if (!pData || !pData.isActive) {
+    db.ref('rooms/' + currentRoomId + '/gameState/leftPlayer').remove();
+    return;
+  }
+
+  // 탈주자의 카드 수거
+  let cardsToDistribute = [...(pData.deck || []), ...(pData.table || [])];
+  pData.deck = [];
+  pData.table = [];
+  pData.isActive = false;
+
+  let activePlayers = Object.keys(gameState.players).filter(
+    (k) => gameState.players[k].isActive,
+  );
+
+  // 방장 혼자 남았다면 전체 게임 종료
+  if (activePlayers.length === 1 && activePlayers[0] === myNickname) {
+    db.ref('rooms/' + currentRoomId + '/gameState').update({
+      hostQuit: true,
+      message: '모든 플레이어가 게임을 종료했습니다.',
+      leftPlayer: null,
+    });
+    return;
+  }
+
+  // 남은 활성 플레이어들에게 공평하게 카드 배분
+  let idx = 0;
+  while (cardsToDistribute.length > 0) {
+    let pName = activePlayers[idx % activePlayers.length];
+    if (!gameState.players[pName].deck) gameState.players[pName].deck = [];
+    gameState.players[pName].deck.push(cardsToDistribute.shift());
+    idx++;
+  }
+
+  let nextTurn = gameState.currentTurn;
+  // 턴이었던 사람이 나간 경우, 다음 차례인 사람으로 넘기기
+  if (nextTurn === leftName && players.length > 0) {
+    let turnIndex = players.findIndex((p) => p.name === leftName);
+    if (turnIndex !== -1) {
+      let startIdx = turnIndex;
+      do {
+        turnIndex = (turnIndex + 1) % numPlayers;
+        let nextName = players[turnIndex].name;
+        if (
+          gameState.players[nextName].isActive &&
+          (gameState.players[nextName].deck || []).length > 0
+        ) {
+          nextTurn = nextName;
+          break;
+        }
+      } while (turnIndex !== startIdx);
+    }
+  } else if (nextTurn === leftName) {
+    nextTurn = myNickname;
+  }
+
+  let updates = {
+    players: gameState.players,
+    message: `${leftName}님이 게임을 떠났습니다.`,
+    leftPlayer: null,
+    currentTurn: nextTurn,
+  };
+
+  // 일시정지를 한 사람이 나갔다면 잠금 해제
+  if (gameState.isPaused && gameState.pausedBy === leftName) {
+    updates.isPaused = false;
+    updates.pausedBy = '';
+  }
+
+  db.ref('rooms/' + currentRoomId + '/gameState').update(updates);
 }
 
 function applyGameStateMulti(gameState) {
