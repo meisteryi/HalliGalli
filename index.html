@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>온라인 할리갈리</title>
     <!-- 분리된 CSS 파일들 연결 -->
-    <link rel="stylesheet" href="base.css?v=10" />
-    <link rel="stylesheet" href="layout.css?v=10" />
-    <link rel="stylesheet" href="buttons.css?v=10" />
-    <link rel="stylesheet" href="cards.css?v=10" />
-    <link rel="stylesheet" href="ui-elements.css?v=10" />
+    <link rel="stylesheet" href="base.css?v=12" />
+    <link rel="stylesheet" href="layout.css?v=12" />
+    <link rel="stylesheet" href="buttons.css?v=12" />
+    <link rel="stylesheet" href="cards.css?v=12" />
+    <link rel="stylesheet" href="ui-elements.css?v=12" />
   </head>
   <body>
     <!-- 모드 선택 화면 -->
@@ -102,9 +102,26 @@
         입장 코드:
         <span
           id="lobby-room-code"
-          style="color: #fbc02d; font-size: 2rem; letter-spacing: 2px"
+          style="
+            color: #fbc02d;
+            font-size: 2rem;
+            letter-spacing: 2px;
+            vertical-align: middle;
+          "
           >------</span
         >
+        <button
+          class="btn"
+          style="
+            padding: 5px 10px;
+            font-size: 1rem;
+            vertical-align: middle;
+            margin-left: 10px;
+          "
+          onclick="copyRoomCode()"
+        >
+          복사
+        </button>
       </p>
 
       <div
@@ -218,8 +235,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <!-- 분리된 JS 파일들 연결 (순서 중요) -->
-    <script src="state.js?v=10"></script>
-    <script src="ui.js?v=10"></script>
-    <script src="game.js?v=10"></script>
+    <script src="state.js?v=12"></script>
+    <script src="ui.js?v=12"></script>
+    <script src="game.js?v=12"></script>
   </body>
 </html>

@@ -6,9 +6,9 @@
   border-radius: 8px;
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  font-size: 3.5rem;
   font-family: '궁서', 'Gungsuh', 'Nanum Pen Script', serif;
   color: #000;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
@@ -31,6 +31,18 @@
   border: 2px dashed rgba(0, 0, 0, 0.2);
   cursor: default;
   transform: none !important;
+}
+
+.turn-card-title {
+  font-size: 3.5rem;
+  display: block;
+}
+
+.turn-card-subtitle {
+  font-size: 1.2rem;
+  font-family: '굴림', 'Gulim', '굴림체', 'GulimChe', sans-serif;
+  margin-top: 5px;
+  display: block;
 }
 
 /* 공통 카드 뒷면 패턴 및 글씨 */

@@ -37,6 +37,7 @@ function resetToStartScreen() {
     db.ref('rooms/' + currentRoomId + '/gameState').off();
     db.ref('rooms/' + currentRoomId + '/players').off();
     db.ref('rooms/' + currentRoomId + '/status').off();
+    db.ref('rooms/' + currentRoomId + '/turnState').off();
     currentRoomId = '';
     isHost = false;
   }
@@ -253,10 +254,12 @@ function enterLobby() {
 
   // 파이어베이스 방 상태 감지 (게임 시작 신호 대기)
   db.ref('rooms/' + currentRoomId + '/status').on('value', (snapshot) => {
-    if (snapshot.val() === 'playing') {
-      // 게임 시작 신호를 받으면 대기실 리스너들을 해제하고 게임 화면으로 이동
+    if (snapshot.val() === 'selectingTurn') {
+      transitionToTurnSelectionMulti();
+    } else if (snapshot.val() === 'playing') {
       db.ref('rooms/' + currentRoomId + '/status').off();
       db.ref('rooms/' + currentRoomId + '/players').off();
+      db.ref('rooms/' + currentRoomId + '/turnState').off();
       transitionToMultiGame();
     }
   });
@@ -317,10 +320,144 @@ function startMultiGame() {
     return alert('최소 2명 이상의 플레이어가 접속해야 시작할 수 있습니다!');
   }
 
+  // 1. 순서 뽑기용 카드 배열 생성 (1명만 '先', 나머지는 꽝 '')
+  const turnCardsArray = Array(playerNames.length).fill('');
+  turnCardsArray[Math.floor(Math.random() * playerNames.length)] = '先';
+
+  // 2. 파이어베이스 상태를 'selectingTurn'으로 변경하여 모두 카드 뽑기 화면으로 이동
+  db.ref('rooms/' + currentRoomId).update({
+    status: 'selectingTurn',
+    turnState: {
+      cards: turnCardsArray,
+      selections: {},
+    },
+  });
+}
+
+function transitionToTurnSelectionMulti() {
+  document.getElementById('multi-lobby-screen').classList.add('hidden');
+  document.getElementById('turn-screen').classList.remove('hidden');
+  document.getElementById('turn-result').innerText = '';
+
+  const container = document.getElementById('turn-cards');
+  container.innerHTML = ''; // 초기화
+
+  // 파이어베이스 순서 뽑기 상태 실시간 감지
+  db.ref('rooms/' + currentRoomId + '/turnState').on('value', (snapshot) => {
+    const tState = snapshot.val();
+    if (tState) {
+      renderTurnSelectionMulti(tState);
+    }
+  });
+}
+
+function renderTurnSelectionMulti(tState) {
+  const container = document.getElementById('turn-cards');
+  const playerNames = Object.keys(roomState.players);
+  const totalPlayers = playerNames.length;
+  const selections = tState.selections || {};
+  const numSelections = Object.keys(selections).length;
+
+  // 컨테이너가 비어있으면 초기 카드 렌더링
+  if (container.children.length !== totalPlayers) {
+    container.innerHTML = '';
+    for (let i = 0; i < totalPlayers; i++) {
+      let card = document.createElement('div');
+      card.className = 'turn-card card-back';
+      card.onclick = () => selectTurnCardMulti(i);
+      container.appendChild(card);
+    }
+  }
+
+  let cardsDom = container.children;
+  let mySelectionExists = Object.values(selections).includes(myNickname);
+  let sunPlayer = null;
+
+  for (let i = 0; i < totalPlayers; i++) {
+    if (selections[i]) {
+      cardsDom[i].onclick = null; // 이미 누군가 고른 카드는 클릭 방지
+      cardsDom[i].classList.remove('card-back');
+      cardsDom[i].classList.add('revealed');
+
+      if (numSelections === totalPlayers) {
+        // [모두가 뽑기를 완료한 경우] 결과를 짠! 하고 보여줌
+        cardsDom[i].innerHTML =
+          `<span class="turn-card-title">${tState.cards[i]}</span><span class="turn-card-subtitle">${selections[i]}</span>`;
+        if (tState.cards[i] === '先') {
+          sunPlayer = selections[i];
+          cardsDom[i].style.color = '#d32f2f';
+        } else {
+          cardsDom[i].style.color = '#000';
+        }
+      } else {
+        // [아직 진행 중인 경우] 내용물은 가리고 누구의 선택인지만 표시
+        cardsDom[i].innerHTML =
+          `<span class="turn-card-subtitle" style="margin-top: 40px; font-size: 1.2rem; color: #666;">선택완료<br>${selections[i]}</span>`;
+      }
+    } else {
+      // 아직 선택되지 않은 카드
+      cardsDom[i].innerHTML = '';
+      cardsDom[i].classList.add('card-back');
+      cardsDom[i].classList.remove('revealed');
+      cardsDom[i].onclick = mySelectionExists
+        ? null
+        : () => selectTurnCardMulti(i);
+    }
+  }
+
+  // 방장(Host) 전용 로직: N명 중 N-1명이 골랐다면 마지막 남은 사람을 남은 카드에 자동 배정
+  if (isHost && numSelections === totalPlayers - 1) {
+    let missingIndex = -1;
+    for (let i = 0; i < totalPlayers; i++) {
+      if (!selections[i]) missingIndex = i;
+    }
+    let missingPlayer = playerNames.find(
+      (p) => !Object.values(selections).includes(p),
+    );
+
+    if (missingIndex !== -1 && missingPlayer) {
+      db.ref(
+        'rooms/' + currentRoomId + '/turnState/selections/' + missingIndex,
+      ).set(missingPlayer);
+    }
+  }
+
+  // 모두가 뽑기를 완료하여 '先'이 결정된 경우
+  if (numSelections === totalPlayers && sunPlayer) {
+    let resultText =
+      sunPlayer === myNickname
+        ? "🎉 내가 '先'을 뽑았습니다! 먼저 시작합니다."
+        : `👤 ${sunPlayer}님이 '先'을 뽑았습니다!`;
+    document.getElementById('turn-result').innerText = resultText;
+
+    // 3초 뒤에 게임 화면으로 넘어가기 (방장만 트리거)
+    if (isHost) {
+      setTimeout(() => {
+        startMultiGamePhase(sunPlayer);
+      }, 3000);
+    }
+  }
+}
+
+function selectTurnCardMulti(index) {
+  // 트랜잭션을 사용해 동시에 같은 카드를 고르는 것(충돌) 방지
+  const selRef = db.ref(
+    'rooms/' + currentRoomId + '/turnState/selections/' + index,
+  );
+  selRef.transaction((currentVal) => {
+    if (currentVal === null) {
+      return myNickname;
+    }
+    return; // 누군가 이미 선점했다면 중단
+  });
+}
+
+function startMultiGamePhase(firstTurn) {
+  const playerNames = Object.keys(roomState.players);
   // 1. 게임 초기 상태 구성 (전체 덱 셔플)
   const fullDeck = generateDeck();
   let turn = 0;
-  const numPlayers = playerNames.length;
+  const numPlayersCount = playerNames.length;
 
   let playersData = {};
   playerNames.forEach((name, index) => {
@@ -334,12 +471,11 @@ function startMultiGame() {
 
   // 2. 플레이어들에게 골고루 카드 분배
   while (fullDeck.length > 0) {
-    playersData[playerNames[turn % numPlayers]].deck.push(fullDeck.shift());
+    playersData[playerNames[turn % numPlayersCount]].deck.push(
+      fullDeck.shift(),
+    );
     turn++;
   }
-
-  // 3. 시작 턴 무작위 선정
-  const firstTurn = playerNames[Math.floor(Math.random() * numPlayers)];
 
   const initialGameState = {
     players: playersData,
@@ -351,7 +487,7 @@ function startMultiGame() {
     hostQuit: false,
   };
 
-  // 4. 파이어베이스 업데이트 (이 순간 모든 접속자의 화면이 게임으로 넘어감)
+  // 3. 파이어베이스 업데이트 (이 순간 모든 접속자의 상태가 playing으로 변경됨)
   db.ref('rooms/' + currentRoomId).update({
     status: 'playing',
     gameState: initialGameState,
@@ -362,6 +498,7 @@ function startMultiGame() {
 
 function transitionToMultiGame() {
   document.getElementById('multi-lobby-screen').classList.add('hidden');
+  document.getElementById('turn-screen').classList.add('hidden');
   document.getElementById('game-container').classList.remove('hidden');
 
   // 게임 상태 실시간 동기화 리스너 (가장 중요!)
@@ -725,13 +862,18 @@ function selectTurnCard(selectedIndex) {
   for (let i = 0; i < numPlayers; i++) {
     cardsDom[i].classList.remove('card-back');
     cardsDom[i].classList.add('revealed');
-    cardsDom[i].innerText = turnCards[i];
 
     let owner = i === selectedIndex ? 0 : compId++;
+    let ownerName = owner === 0 ? '🙋‍♂️ 나' : `컴퓨터 ${owner}`;
+
+    cardsDom[i].innerHTML =
+      `<span class="turn-card-title">${turnCards[i]}</span><span class="turn-card-subtitle">${ownerName}</span>`;
 
     if (turnCards[i] === '先') {
       sunPlayer = owner;
       cardsDom[i].style.color = '#d32f2f';
+    } else {
+      cardsDom[i].style.color = '#000';
     }
   }
 

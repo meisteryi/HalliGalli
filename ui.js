@@ -187,3 +187,22 @@ function showFireworks() {
     setTimeout(() => confetti.remove(), 5000);
   }
 }
+
+// 방 코드 복사 기능
+function copyRoomCode() {
+  const code = document.getElementById('lobby-room-code').innerText;
+  if (code && code !== '------') {
+    navigator.clipboard
+      .writeText(code)
+      .then(() => {
+        alert(
+          `방 코드 [${code}]가 클립보드에 복사되었습니다! 친구에게 붙여넣기 하세요.`,
+        );
+      })
+      .catch((err) => {
+        alert(
+          '복사에 실패했습니다. 직접 코드를 선택해서 복사해 주세요: ' + err,
+        );
+      });
+  }
+}
