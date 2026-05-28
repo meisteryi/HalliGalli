@@ -42,8 +42,14 @@ function resetToStartScreen() {
         db.ref('rooms/' + currentRoomId + '/gameState/message')
           .onDisconnect()
           .cancel();
+        db.ref('rooms/' + currentRoomId + '/turnState/hostQuit')
+          .onDisconnect()
+          .cancel();
       } else {
         db.ref('rooms/' + currentRoomId + '/gameState/leftPlayer')
+          .onDisconnect()
+          .cancel();
+        db.ref('rooms/' + currentRoomId + '/turnState/leftPlayer')
           .onDisconnect()
           .cancel();
       }
@@ -93,6 +99,14 @@ function pauseGame() {
 function resumeGame() {
   // 멀티 플레이일 경우 파이어베이스로 계속하기 상태 전송
   if (gameMode === 'multi') {
+    if (roomState.status === 'selectingTurn') {
+      db.ref('rooms/' + currentRoomId + '/turnState').update({
+        isPaused: false,
+        pausedBy: '',
+      });
+      return;
+    }
+
     db.ref('rooms/' + currentRoomId + '/gameState').update({
       isPaused: false,
       pausedBy: '',
@@ -116,6 +130,22 @@ function resumeGame() {
 function quitGame() {
   // 멀티 플레이일 경우
   if (gameMode === 'multi') {
+    if (roomState.status === 'selectingTurn') {
+      if (isHost) {
+        db.ref('rooms/' + currentRoomId + '/turnState').update({
+          hostQuit: true,
+        });
+      } else {
+        db.ref('rooms/' + currentRoomId + '/turnState').update({
+          leftPlayer: myNickname,
+        });
+        db.ref('rooms/' + currentRoomId + '/players/' + myNickname).remove();
+        document.getElementById('pause-screen').classList.add('hidden');
+        resetToStartScreen();
+      }
+      return;
+    }
+
     if (isHost) {
       // 방장일 경우: 방 전체 종료 신호 전송
       db.ref('rooms/' + currentRoomId + '/gameState').update({
@@ -367,6 +397,18 @@ function transitionToTurnSelectionMulti() {
   const container = document.getElementById('turn-cards');
   container.innerHTML = ''; // 초기화
 
+  roomState.status = 'selectingTurn';
+
+  if (isHost) {
+    db.ref('rooms/' + currentRoomId + '/turnState/hostQuit')
+      .onDisconnect()
+      .set(true);
+  } else {
+    db.ref('rooms/' + currentRoomId + '/turnState/leftPlayer')
+      .onDisconnect()
+      .set(myNickname);
+  }
+
   // 파이어베이스 순서 뽑기 상태 실시간 감지
   db.ref('rooms/' + currentRoomId + '/turnState').on('value', (snapshot) => {
     const tState = snapshot.val();
@@ -377,9 +419,73 @@ function transitionToTurnSelectionMulti() {
 }
 
 function renderTurnSelectionMulti(tState) {
+  if (tState.hostQuit) {
+    db.ref('rooms/' + currentRoomId + '/turnState').off();
+    document.getElementById('pause-screen').classList.add('hidden');
+    alert('방장에 의해 게임이 종료되었습니다.');
+    if (isHost) db.ref('rooms/' + currentRoomId).remove();
+    resetToStartScreen();
+    return;
+  }
+
+  if (tState.leftPlayer && isHost) {
+    let remainingPlayers = Object.keys(roomState.players).filter(
+      (p) => p !== tState.leftPlayer,
+    );
+
+    if (remainingPlayers.length < 2) {
+      db.ref('rooms/' + currentRoomId + '/turnState').update({
+        hostQuit: true,
+      });
+      return;
+    }
+
+    const turnCardsArray = Array(remainingPlayers.length).fill('');
+    turnCardsArray[Math.floor(Math.random() * remainingPlayers.length)] = '先';
+
+    db.ref('rooms/' + currentRoomId + '/turnState').update({
+      cards: turnCardsArray,
+      selections: {},
+      leftPlayer: null,
+      isPaused: false,
+      pausedBy: '',
+    });
+    return;
+  }
+
+  const domPauseScreen = document.getElementById('pause-screen');
+  const domPauseTitle = document.getElementById('pause-title');
+  const domResumeBtn = document.getElementById('resume-btn');
+  const domQuitBtn = document.getElementById('quit-btn');
+
+  if (tState.isPaused) {
+    isPaused = true;
+    domPauseScreen.classList.remove('hidden');
+    if (tState.pausedBy === myNickname) {
+      domPauseTitle.innerText = '일시정지';
+      domPauseTitle.style.fontSize = '';
+      domPauseTitle.style.whiteSpace = '';
+      domResumeBtn.classList.remove('hidden');
+      domQuitBtn.classList.remove('hidden');
+    } else {
+      domPauseTitle.innerText = `${tState.pausedBy}님이\n게임을 일시정지했습니다.`;
+      domPauseTitle.style.fontSize = '2.5rem';
+      domPauseTitle.style.whiteSpace = 'pre-wrap';
+      domResumeBtn.classList.add('hidden');
+      if (isHost) domQuitBtn.classList.remove('hidden');
+      else domQuitBtn.classList.add('hidden');
+    }
+  } else {
+    isPaused = false;
+    domPauseScreen.classList.add('hidden');
+  }
+
   const container = document.getElementById('turn-cards');
-  const playerNames = Object.keys(roomState.players);
-  const totalPlayers = playerNames.length;
+  const totalPlayers = (tState.cards || []).length;
+  let playerNames = Object.keys(roomState.players);
+
+  if (playerNames.length !== totalPlayers) return;
+
   const selections = tState.selections || {};
   const numSelections = Object.keys(selections).length;
 
@@ -458,7 +564,18 @@ function renderTurnSelectionMulti(tState) {
     // 3초 뒤에 게임 화면으로 넘어가기 (방장만 트리거)
     if (isHost) {
       setTimeout(() => {
-        startMultiGamePhase(sunPlayer);
+        db.ref('rooms/' + currentRoomId + '/turnState')
+          .once('value')
+          .then((snap) => {
+            const state = snap.val();
+            if (
+              !state.leftPlayer &&
+              state.selections &&
+              Object.keys(state.selections).length === totalPlayers
+            ) {
+              startMultiGamePhase(sunPlayer);
+            }
+          });
       }, 3000);
     }
   }
@@ -525,6 +642,8 @@ function transitionToMultiGame() {
   document.getElementById('multi-lobby-screen').classList.add('hidden');
   document.getElementById('turn-screen').classList.add('hidden');
   document.getElementById('game-container').classList.remove('hidden');
+
+  roomState.status = 'playing';
 
   // 비정상 종료(브라우저 닫기) 시 탈주 기록을 남김 (방장이 아닌 경우)
   if (isHost) {
@@ -661,7 +780,7 @@ function handlePlayerLeftMulti(gameState) {
   if (activePlayers.length === 1 && activePlayers[0] === myNickname) {
     db.ref('rooms/' + currentRoomId + '/gameState').update({
       hostQuit: true,
-      message: '모든 플레이어가 게임을 종료했습니다.',
+      message: '모든 플레이어가 게임을 종료했습니다. 게임을 종료합니다.',
       leftPlayer: null,
     });
     return;
@@ -705,8 +824,8 @@ function handlePlayerLeftMulti(gameState) {
     currentTurn: nextTurn,
   };
 
-  // 일시정지를 한 사람이 나갔다면 잠금 해제
-  if (gameState.isPaused && gameState.pausedBy === leftName) {
+  // 누군가 나갔다면 현재 걸려있는 일시정지는 무조건 해제 (메시지 확인 및 렌더링을 위해)
+  if (gameState.isPaused) {
     updates.isPaused = false;
     updates.pausedBy = '';
   }
