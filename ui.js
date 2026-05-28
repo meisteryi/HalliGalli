@@ -36,6 +36,9 @@ function setupOpponentsUI() {
   }
 }
 
+let lastWarningDeckCount = 999;
+let warningTimer = null;
+
 // UI 갱신 (카드 수, 화면에 오픈된 카드 표시 등)
 function updateUI() {
   players.forEach((p) => {
@@ -59,6 +62,31 @@ function updateUI() {
       }
     }
   });
+
+  // 덱 잔여 카드 수 경고 표시 (5장 이하일 때)
+  if (players.length > 0 && players[0].isActive) {
+    let currentCount = players[0].deck.length;
+    if (
+      currentCount <= 5 &&
+      currentCount > 0 &&
+      currentCount < lastWarningDeckCount
+    ) {
+      showWarningMessage(`⚠️ 내 카드가 ${currentCount}장 남았습니다! ⚠️`);
+    }
+    lastWarningDeckCount = currentCount;
+  }
+}
+
+function showWarningMessage(msg) {
+  const warningEl = document.getElementById('warning-message');
+  if (!warningEl) return;
+  warningEl.innerText = msg;
+  warningEl.classList.remove('hidden');
+
+  clearTimeout(warningTimer);
+  warningTimer = setTimeout(() => {
+    warningEl.classList.add('hidden');
+  }, 1500); // 1.5초 후 자동으로 사라짐
 }
 
 // 남은 카드 수에 따라 덱의 3D 그림자 두께를 동적으로 조절

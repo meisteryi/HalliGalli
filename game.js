@@ -159,11 +159,18 @@ function selectGameMode(mode) {
 
 let tempNickname = '';
 
+function selectProfileFruit(fruit, element) {
+  myProfileFruit = fruit;
+  const btns = document.querySelectorAll('.fruit-btn');
+  btns.forEach((btn) => btn.classList.remove('selected'));
+  element.classList.add('selected');
+}
+
 function confirmNickname() {
   const nickname = document.getElementById('nickname-input').value.trim();
   if (!nickname) return alert('닉네임을 입력해주세요!');
 
-  tempNickname = nickname;
+  tempNickname = myProfileFruit + ' ' + nickname;
   document.getElementById('confirm-desc').innerText =
     `'${nickname}' (으)로 정말 참가하시겠습니까?`;
   document.getElementById('confirm-screen').classList.remove('hidden');
@@ -997,7 +1004,7 @@ function scheduleComFlip() {
 }
 
 function isExactlyFive() {
-  let totals = { '🍎': 0, '🍌': 0, '🍇': 0, '🍓': 0, '🍒': 0 };
+  let totals = { '🍎': 0, '🍌': 0, '🍇': 0, '🍓': 0 };
   players.forEach((p) => {
     if (p.isActive && p.table.length > 0) {
       let topCard = p.table[p.table.length - 1];

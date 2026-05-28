@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>온라인 할리갈리</title>
     <!-- 분리된 CSS 파일들 연결 -->
-    <link rel="stylesheet" href="base.css?v=12" />
-    <link rel="stylesheet" href="layout.css?v=12" />
-    <link rel="stylesheet" href="buttons.css?v=12" />
-    <link rel="stylesheet" href="cards.css?v=12" />
-    <link rel="stylesheet" href="ui-elements.css?v=12" />
+    <link rel="stylesheet" href="base.css?v=16" />
+    <link rel="stylesheet" href="layout.css?v=16" />
+    <link rel="stylesheet" href="buttons.css?v=16" />
+    <link rel="stylesheet" href="cards.css?v=16" />
+    <link rel="stylesheet" href="ui-elements.css?v=16" />
   </head>
   <body>
     <!-- 모드 선택 화면 -->
@@ -50,6 +50,37 @@
       <h1>닉네임 설정</h1>
       <p>사용할 닉네임을 입력하세요.</p>
       <div class="player-select">
+        <div
+          id="fruit-selector"
+          style="
+            display: flex;
+            justify-content: space-around;
+            font-size: 2rem;
+            margin-bottom: 10px;
+          "
+        >
+          <div
+            class="fruit-btn selected"
+            onclick="selectProfileFruit('🍎', this)"
+          >
+            🍎
+          </div>
+          <div class="fruit-btn" onclick="selectProfileFruit('🍌', this)">
+            🍌
+          </div>
+          <div class="fruit-btn" onclick="selectProfileFruit('🍇', this)">
+            🍇
+          </div>
+          <div class="fruit-btn" onclick="selectProfileFruit('🍓', this)">
+            🍓
+          </div>
+          <div class="fruit-btn" onclick="selectProfileFruit('🍑', this)">
+            🍑
+          </div>
+          <div class="fruit-btn" onclick="selectProfileFruit('🍉', this)">
+            🍉
+          </div>
+        </div>
         <input
           type="text"
           id="nickname-input"
@@ -198,6 +229,9 @@
       <!-- 카운트다운 표시 영역 -->
       <div id="countdown" class="hidden"></div>
 
+      <!-- 경고 메세지 영역 -->
+      <div id="warning-message" class="hidden"></div>
+
       <!-- 중앙 영역 (종) -->
       <div class="center-area">
         <button id="bell-btn" onclick="userRingBell()">🔔</button>
@@ -235,8 +269,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <!-- 분리된 JS 파일들 연결 (순서 중요) -->
-    <script src="state.js?v=12"></script>
-    <script src="ui.js?v=12"></script>
-    <script src="game.js?v=12"></script>
+    <script src="state.js?v=16"></script>
+    <script src="ui.js?v=16"></script>
+    <script src="game.js?v=16"></script>
   </body>
 </html>

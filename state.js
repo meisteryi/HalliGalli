@@ -35,6 +35,7 @@ let hasSelectedTurn = false;
 let turnTransitionTimer = null;
 
 // 멀티 플레이용 변수
+let myProfileFruit = '🍎'; // 선택한 프로필 이모지
 let myNickname = '';
 let currentRoomId = '';
 let isHost = false;
