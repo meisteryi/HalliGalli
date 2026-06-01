@@ -105,6 +105,30 @@ function updateDeckThickness(element, count) {
   }
 }
 
+// 바닥에 쌓인 카드 개수에 따라 겹쳐 있는 듯한 그림자 효과를 줌
+function updateTableThickness(element, count) {
+  if (count <= 1) {
+    element.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
+  } else {
+    let thickness = Math.min(count - 1, 6); // 최대 6장까지 겹친 효과
+    let shadow = '';
+    // 카드가 살짝 어긋나게 쌓이는 효과를 주기 위한 지그재그 오프셋
+    const xOffsets = [-3, 5, -2, 4, -4, 3];
+    let currentX = 0;
+    let currentY = 0;
+
+    for (let i = 0; i < thickness; i++) {
+      currentX += xOffsets[i];
+      currentY += 4; // 아래로 4px씩 단층 형성
+      // 흰색 바탕(0 0 #fff)과 실선 윤곽선(0 2px #555)을 겹겹이 추가하여 명확하게 구분
+      shadow += `${currentX}px ${currentY}px 0 0 #fff, ${currentX}px ${currentY}px 0 2px #555, `;
+    }
+    // 가장 아래쪽의 최종 그림자
+    shadow += `${currentX}px ${currentY + 6}px 10px 2px rgba(0, 0, 0, 0.4)`;
+    element.style.boxShadow = shadow;
+  }
+}
+
 function renderCard(element, card) {
   if (!card) {
     element.innerHTML = '';

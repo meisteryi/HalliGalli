@@ -9,7 +9,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  font-family: '궁서', 'Gungsuh', 'Nanum Pen Script', serif;
+  font-family: 'Jua', sans-serif;
   color: #000;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
@@ -40,7 +40,7 @@
 
 .turn-card-subtitle {
   font-size: 1.2rem;
-  font-family: '굴림', 'Gulim', '굴림체', 'GulimChe', sans-serif;
+  font-family: 'Jua', sans-serif;
   margin-top: 5px;
   display: block;
 }
@@ -66,7 +66,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-15deg);
-  font-family: '굴림', 'Gulim', '굴림체', 'GulimChe', sans-serif;
+  font-family: 'Jua', sans-serif;
   font-size: 1.1rem;
   font-weight: bold;
   color: #d32f2f;
@@ -152,7 +152,7 @@
   text-align: center;
   line-height: 1.2;
   padding: 10px;
-  border: 2px dashed rgba(0, 0, 0, 0.1);
+  border: 2px solid #555;
 }
 
 .opponent-area .card-slot {
