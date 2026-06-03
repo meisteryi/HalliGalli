@@ -36,13 +36,7 @@ function resetToStartScreen() {
   if (currentRoomId) {
     if (gameMode === 'multi') {
       if (isHost) {
-        db.ref('rooms/' + currentRoomId + '/gameState/hostQuit')
-          .onDisconnect()
-          .cancel();
-        db.ref('rooms/' + currentRoomId + '/gameState/message')
-          .onDisconnect()
-          .cancel();
-        db.ref('rooms/' + currentRoomId + '/turnState/hostQuit')
+        db.ref('rooms/' + currentRoomId)
           .onDisconnect()
           .cancel();
       } else {
@@ -252,6 +246,10 @@ function createRoom() {
   db.ref('rooms/' + currentRoomId)
     .set(roomState)
     .then(() => {
+      // 방장의 브라우저가 강제 종료되거나 인터넷이 끊기면 파이어베이스가 방 전체를 즉시 자동 삭제
+      db.ref('rooms/' + currentRoomId)
+        .onDisconnect()
+        .remove();
       enterLobby();
     })
     .catch((error) => {
@@ -309,6 +307,13 @@ function enterLobby() {
 
   // 파이어베이스 방 상태 감지 (게임 시작 신호 대기)
   db.ref('rooms/' + currentRoomId + '/status').on('value', (snapshot) => {
+    // 방장이 연결을 끊어 방이 삭제된 경우
+    if (!snapshot.exists() && currentRoomId !== '') {
+      alert('방장이 퇴장하여 대기실이 폭파되었습니다.');
+      resetToStartScreen();
+      return;
+    }
+
     if (snapshot.val() === 'selectingTurn') {
       transitionToTurnSelectionMulti();
     } else if (snapshot.val() === 'playing') {
@@ -399,11 +404,7 @@ function transitionToTurnSelectionMulti() {
 
   roomState.status = 'selectingTurn';
 
-  if (isHost) {
-    db.ref('rooms/' + currentRoomId + '/turnState/hostQuit')
-      .onDisconnect()
-      .set(true);
-  } else {
+  if (!isHost) {
     db.ref('rooms/' + currentRoomId + '/turnState/leftPlayer')
       .onDisconnect()
       .set(myNickname);
@@ -411,6 +412,12 @@ function transitionToTurnSelectionMulti() {
 
   // 파이어베이스 순서 뽑기 상태 실시간 감지
   db.ref('rooms/' + currentRoomId + '/turnState').on('value', (snapshot) => {
+    if (!snapshot.exists() && currentRoomId !== '') {
+      alert('방장이 퇴장하여 게임이 종료되었습니다.');
+      resetToStartScreen();
+      return;
+    }
+
     const tState = snapshot.val();
     if (tState) {
       renderTurnSelectionMulti(tState);
@@ -646,14 +653,7 @@ function transitionToMultiGame() {
   roomState.status = 'playing';
 
   // 비정상 종료(브라우저 닫기) 시 탈주 기록을 남김 (방장이 아닌 경우)
-  if (isHost) {
-    db.ref('rooms/' + currentRoomId + '/gameState/hostQuit')
-      .onDisconnect()
-      .set(true);
-    db.ref('rooms/' + currentRoomId + '/gameState/message')
-      .onDisconnect()
-      .set('방장에 의해 게임이 종료되었습니다.');
-  } else {
+  if (!isHost) {
     db.ref('rooms/' + currentRoomId + '/gameState/leftPlayer')
       .onDisconnect()
       .set(myNickname);
@@ -661,6 +661,12 @@ function transitionToMultiGame() {
 
   // 게임 상태 실시간 동기화 리스너 (가장 중요!)
   db.ref('rooms/' + currentRoomId + '/gameState').on('value', (snapshot) => {
+    if (!snapshot.exists() && currentRoomId !== '') {
+      alert('방장이 퇴장하여 게임이 종료되었습니다.');
+      resetToStartScreen();
+      return;
+    }
+
     const gameState = snapshot.val();
     if (gameState) {
       updateMultiUI(gameState);
