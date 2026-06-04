@@ -145,34 +145,25 @@ function quitGame() {
   if (gameMode === 'multi') {
     if (roomState.status === 'selectingTurn') {
       if (isHost) {
-        db.ref('rooms/' + currentRoomId + '/turnState').update({
-          hostQuit: true,
-        });
+        returnToLobbyHost();
       } else {
         db.ref('rooms/' + currentRoomId + '/turnState').update({
           leftPlayer: myNickname,
         });
-        db.ref('rooms/' + currentRoomId + '/players/' + myNickname).remove();
-        switchScreen('pause-screen', null);
-        resetToStartScreen();
+        forceReturnToLobby();
       }
       return;
     }
 
     if (isHost) {
-      // 방장일 경우: 방 전체 종료 신호 전송
-      db.ref('rooms/' + currentRoomId + '/gameState').update({
-        hostQuit: true,
-        message: '방장에 의해 게임이 종료되었습니다.',
-      });
+      // 방장일 경우: 게임을 강제 종료하고 모두를 대기실로 이동
+      returnToLobbyHost();
     } else {
-      // 방장이 아닐 경우: 탈주 기록을 남기고 나감
+      // 방장이 아닐 경우: 탈주 기록을 남기고 혼자 대기실로 돌아감
       db.ref('rooms/' + currentRoomId + '/gameState').update({
         leftPlayer: myNickname,
       });
-      db.ref('rooms/' + currentRoomId + '/players/' + myNickname).remove();
-      switchScreen('pause-screen', null);
-      resetToStartScreen();
+      forceReturnToLobby();
     }
     return;
   }
@@ -481,9 +472,16 @@ function executeRingBell(player) {
         }
       });
       if (player === 0) {
-        ringMsg = '❌ 실수! 컴퓨터들에게 카드를 1장씩 줍니다.';
+        ringMsg = '❌ 실수! 상대방에게 카드를 1장씩 줍니다.';
       } else {
         ringMsg = `💻 컴퓨터 ${player}가 실수했습니다! 카드를 나눠 받습니다.`;
+      }
+    } else {
+      p.isActive = false; // 카드가 없는데 실수하면 즉시 탈락
+      if (player === 0) {
+        ringMsg = '❌ 카드가 없는 상태에서 실수했습니다! 즉시 탈락!';
+      } else {
+        ringMsg = `💻 컴퓨터 ${player}가 카드가 없이 실수하여 탈락했습니다!`;
       }
     }
   }
@@ -513,6 +511,18 @@ function executeRingBell(player) {
       players.forEach((p) => (p.table = []));
       players[player].deck = players[player].deck.concat(tableCards);
       currentTurn = player; // 맞춘 사람이 다음 턴 선공
+
+      // 정답 분배 후 카드를 획득하지 못해 기회를 놓친 좀비들은 최종 탈락
+      players.forEach((p) => {
+        if (
+          p.isActive &&
+          p.deck.length === 0 &&
+          p.table.length === 0 &&
+          p.hasLastChance
+        ) {
+          p.isActive = false;
+        }
+      });
     }
 
     if (checkGameOver()) {
@@ -543,14 +553,69 @@ function executeRingBell(player) {
 function checkGameOver() {
   players.forEach((p) => {
     if (p.isActive && p.deck.length === 0 && p.table.length === 0) {
-      p.isActive = false;
+      if (!p.hasLastChance) {
+        p.hasLastChance = true; // 죽지 않고 1회 기회 부여
+        if (p.isUser) {
+          if (typeof showWarningMessage === 'function') {
+            showWarningMessage(
+              '⚠️ 카드가 모두 소진되었습니다!\n마지막 종 칠 기회입니다.',
+            );
+          }
+        }
+      }
+    } else if (p.isActive && (p.deck.length > 0 || p.table.length > 0)) {
+      p.hasLastChance = false; // 카드를 얻으면 기회 리셋
     }
   });
 
+  if (gameMode === 'multi') {
+    let activePlayers = players.filter((p) => p.isActive);
+
+    if (activePlayers.length <= 1) {
+      isPlaying = false;
+      updateUI();
+      if (activePlayers.length === 1 && activePlayers[0].isUser) {
+        if (!activePlayers[0].isWinProcessed) {
+          activePlayers[0].isWinProcessed = true;
+          db.ref(
+            `rooms/${currentRoomId}/players/${myNickname}/wins`,
+          ).transaction((wins) => {
+            return (wins || 0) + 1;
+          });
+        }
+        showGameOverModal('승리!', '🏆 최후의 승자가 되었습니다!', true, false);
+      } else {
+        let winnerName =
+          activePlayers.length === 1 ? activePlayers[0].name : '없음';
+        showGameOverModal('게임 종료', `🏆 우승자: ${winnerName}`, true, false);
+      }
+      return true;
+    }
+
+    if (!players[0].isActive && !players[0].isGameOverProcessed) {
+      players[0].isGameOverProcessed = true; // 중복 모달 호출 방지
+      if (numPlayers > 2) {
+        showGameOverModal(
+          '패배',
+          '😭 카드가 모두 소진되었습니다.\n관전하시겠습니까?',
+          true,
+          true,
+        );
+      }
+    }
+    return false; // 멀티는 최후 1인이 남을 때까지 게임 유지
+  }
+
+  // === 싱글 플레이 전용 승패 체크 ===
   if (!players[0].isActive) {
     isPlaying = false;
     updateUI();
-    showGameOverModal('패배', '😭 패배했습니다... (내 카드 소진)');
+    showGameOverModal(
+      '패배',
+      '😭 패배했습니다... (내 카드 소진)',
+      false,
+      false,
+    );
     return true;
   }
 
@@ -558,14 +623,11 @@ function checkGameOver() {
   if (activeOpponents.length === 0) {
     isPlaying = false;
     updateUI();
-    showGameOverModal('승리!', '🏆 승리했습니다! 축하합니다!');
+    showGameOverModal('승리!', '🏆 승리했습니다! 축하합니다!', false, false);
     return true;
   }
 
-  // 4. "뒤집을 수 있는 카드(deck)"가 남은 플레이어를 기준으로 게임 승패 즉시 판정
-  // 바닥에 정답(5개)이 깔려있지 않아 종을 칠 기회가 없다면 덱이 없는 사람은 즉시 패배 처리
   let ableToFlip = players.filter((p) => p.isActive && p.deck.length > 0);
-
   if (!isExactlyFive()) {
     if (ableToFlip.length === 1) {
       isPlaying = false;
@@ -574,9 +636,16 @@ function checkGameOver() {
         showGameOverModal(
           '승리!',
           '🏆 상대방이 모두 뒤집을 카드를 소진했습니다. 승리!',
+          false,
+          false,
         );
       } else {
-        showGameOverModal('패배', '😭 내 카드가 모두 소진되었습니다. 패배!');
+        showGameOverModal(
+          '패배',
+          '😭 내 카드가 모두 소진되었습니다. 패배!',
+          false,
+          false,
+        );
       }
       return true;
     } else if (ableToFlip.length === 0) {
@@ -585,6 +654,8 @@ function checkGameOver() {
       showGameOverModal(
         '무승부',
         '모든 플레이어가 뒤집을 카드를 소진했습니다.',
+        false,
+        false,
       );
       return true;
     }
@@ -593,9 +664,32 @@ function checkGameOver() {
   return false;
 }
 
-function showGameOverModal(title, desc) {
+function showGameOverModal(title, desc, isMulti = false, canSpectate = false) {
   document.getElementById('game-over-title').innerText = title;
   document.getElementById('game-over-desc').innerText = desc;
+
+  const btnMain = document.getElementById('btn-return-main');
+  const btnLobby = document.getElementById('btn-return-lobby');
+  const btnSpectate = document.getElementById('btn-spectate');
+
+  if (isMulti) {
+    btnMain.classList.add('hidden');
+    btnLobby.classList.remove('hidden');
+    if (canSpectate) {
+      btnSpectate.classList.remove('hidden');
+      btnLobby.innerText = '대기실로 나가기';
+      btnLobby.onclick = returnToLobbyLocal;
+    } else {
+      btnSpectate.classList.add('hidden');
+      btnLobby.innerText = '대기실로 돌아가기';
+      btnLobby.onclick = isHost ? returnToLobbyHost : forceReturnToLobbyWaiting;
+    }
+  } else {
+    btnMain.classList.remove('hidden');
+    btnLobby.classList.add('hidden');
+    btnSpectate.classList.add('hidden');
+  }
+
   switchScreen(null, 'game-over-screen');
 
   // 승리했을 경우 폭죽 이펙트 실행

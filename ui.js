@@ -59,6 +59,21 @@ function updateUI() {
         } else {
           p.domInfo.classList.remove('active-turn');
         }
+
+        if (gameMode === 'multi' && p.isWaitingInLobby) {
+          p.domInfo.innerHTML = `${p.name}<br><span style="font-size:0.8em">(대기실로 나감)</span>`;
+          p.domInfo.style.opacity = '0.5';
+          p.domCard.style.visibility = 'hidden';
+          if (p.domDeck) p.domDeck.style.visibility = 'hidden';
+        } else {
+          if (p.id !== 0) {
+            p.domInfo.innerHTML = `${p.name}: <span id="com-count-${p.id}">${p.deck.length}</span>장`;
+            p.domCount = document.getElementById(`com-count-${p.id}`);
+          } else {
+            p.domInfo.innerHTML = `🙋‍♂️ 내 카드: <span id="user-deck-count">${p.deck.length}</span>장`;
+            p.domCount = document.getElementById(`user-deck-count`);
+          }
+        }
       }
     }
   });

@@ -38,7 +38,7 @@ function createRoom() {
     gameType: gameType, // 방을 만든 호스트의 게임 모드(스탠다드/익스텐디드) 저장
     players: {},
   };
-  roomState.players[myNickname] = { isHost: true };
+  roomState.players[myNickname] = { isHost: true, wins: 0, isReady: true };
 
   db.ref('rooms/' + currentRoomId)
     .set(roomState)
@@ -75,7 +75,7 @@ function joinRoom() {
         setGameType(data.gameType || 'standard');
 
         db.ref('rooms/' + currentRoomId + '/players/' + myNickname)
-          .set({ isHost: false })
+          .set({ isHost: false, wins: 0, isReady: false })
           .then(() => enterLobby());
       } else {
         alert('존재하지 않는 방 코드입니다!');
@@ -91,6 +91,24 @@ function enterLobby() {
   startBtn.disabled = !isHost;
   startBtn.innerText = isHost ? '게임 시작 (방장)' : '방장의 시작 대기중...';
 
+  const readyBtn = document.getElementById('lobby-ready-btn');
+  if (readyBtn) {
+    readyBtn.classList.toggle('hidden', isHost);
+    readyBtn.innerText = '준비하기';
+    readyBtn.style.backgroundColor = 'var(--btn-bg)';
+    readyBtn.style.color = 'var(--btn-text)';
+  }
+
+  const destroyBtn = document.getElementById('lobby-destroy-btn');
+  if (destroyBtn) {
+    if (isHost) {
+      destroyBtn.classList.remove('hidden');
+    } else {
+      destroyBtn.classList.add('hidden');
+    }
+  }
+
+  db.ref('rooms/' + currentRoomId + '/status').off();
   db.ref('rooms/' + currentRoomId + '/status').on('value', (snapshot) => {
     if (!snapshot.exists() && currentRoomId !== '') {
       alert('방장이 퇴장하여 대기실이 폭파되었습니다.');
@@ -98,16 +116,19 @@ function enterLobby() {
       return;
     }
 
-    if (snapshot.val() === 'selectingTurn') {
+    const newStatus = snapshot.val();
+    if (newStatus === 'selectingTurn' && roomState.status !== 'selectingTurn') {
+      roomState.status = 'selectingTurn';
       transitionToTurnSelectionMulti();
-    } else if (snapshot.val() === 'playing') {
-      db.ref('rooms/' + currentRoomId + '/status').off();
-      db.ref('rooms/' + currentRoomId + '/players').off();
-      db.ref('rooms/' + currentRoomId + '/turnState').off();
+    } else if (newStatus === 'playing' && roomState.status !== 'playing') {
+      roomState.status = 'playing';
       transitionToMultiGame();
+    } else if (newStatus === 'waiting' && roomState.status !== 'waiting') {
+      forceReturnToLobby();
     }
   });
 
+  db.ref('rooms/' + currentRoomId + '/players').off();
   db.ref('rooms/' + currentRoomId + '/players').on('value', (snapshot) => {
     if (snapshot.val()) {
       roomState.players = snapshot.val();
@@ -120,8 +141,24 @@ function updateLobbyUI() {
   const playerList = Object.keys(roomState.players).map((key) => ({
     name: key,
     isHost: roomState.players[key].isHost,
+    wins: roomState.players[key].wins || 0,
+    isReady: roomState.players[key].isReady || false,
   }));
   renderLobbyPlayers(playerList);
+
+  const startBtn = document.getElementById('lobby-start-btn');
+  if (isHost) {
+    const allReady = playerList.every((p) => p.isReady);
+    const enoughPlayers = playerList.length >= 2;
+    startBtn.disabled = !(allReady && enoughPlayers);
+    if (!enoughPlayers) {
+      startBtn.innerText = '게임 시작 (인원 부족)';
+    } else if (!allReady) {
+      startBtn.innerText = '게임 시작 (준비 대기중)';
+    } else {
+      startBtn.innerText = '게임 시작 (방장 전용)';
+    }
+  }
 }
 
 function renderLobbyPlayers(playerList) {
@@ -132,12 +169,50 @@ function renderLobbyPlayers(playerList) {
     div.style.color = '#fff';
     div.style.fontSize = '1.2rem';
     div.style.fontWeight = 'bold';
-    div.innerText = `${p.name} ${p.isHost ? '👑' : ''}`;
+    div.style.marginBottom = '5px';
+
+    let statusText = p.isHost
+      ? '👑'
+      : p.isReady
+        ? '<span style="color:#4caf50">[준비 완료]</span>'
+        : '<span style="color:#9e9e9e">[대기 중]</span>';
+
+    div.innerHTML = `${p.name} ${statusText} - ${p.wins}승`;
     container.appendChild(div);
   });
 }
 
+function toggleReady() {
+  if (isHost) return;
+  const playerRef = db.ref('rooms/' + currentRoomId + '/players/' + myNickname);
+  playerRef.once('value').then((snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      const newReadyState = !data.isReady;
+      playerRef.update({ isReady: newReadyState });
+
+      const readyBtn = document.getElementById('lobby-ready-btn');
+      if (newReadyState) {
+        readyBtn.innerText = '준비 취소';
+        readyBtn.style.backgroundColor = '#4caf50';
+        readyBtn.style.color = '#fff';
+      } else {
+        readyBtn.innerText = '준비하기';
+        readyBtn.style.backgroundColor = 'var(--btn-bg)';
+        readyBtn.style.color = 'var(--btn-text)';
+      }
+    }
+  });
+}
+
 function leaveRoom() {
+  if (isHost) {
+    if (!confirm('대기실을 나가면 방이 폭파됩니다. 정말 나가시겠습니까?'))
+      return;
+    db.ref('rooms/' + currentRoomId).remove(); // 방장이 대기실에서 나갈 때만 방 삭제
+    resetToStartScreen();
+    return;
+  }
   db.ref('rooms/' + currentRoomId + '/players').off();
   db.ref('rooms/' + currentRoomId + '/players/' + myNickname).remove();
 
@@ -147,11 +222,26 @@ function leaveRoom() {
   switchScreen('multi-lobby-screen', 'multi-entry-screen');
 }
 
+function destroyRoom() {
+  if (!isHost) return;
+  if (
+    confirm(
+      '정말로 방을 폭파하시겠습니까?\n모든 접속자가 대기실에서 튕겨집니다.',
+    )
+  ) {
+    db.ref('rooms/' + currentRoomId).remove();
+    resetToStartScreen();
+  }
+}
+
 function startMultiGame() {
   if (!isHost) return;
   const playerNames = Object.keys(roomState.players);
   if (playerNames.length < 2)
     return alert('최소 2명 이상의 플레이어가 접속해야 시작할 수 있습니다!');
+
+  const allReady = Object.values(roomState.players).every((p) => p.isReady);
+  if (!allReady) return alert('모든 플레이어가 준비해야 시작할 수 있습니다!');
 
   const turnCardsArray = Array(playerNames.length).fill('');
   turnCardsArray[Math.floor(Math.random() * playerNames.length)] = '先';
@@ -179,11 +269,7 @@ function transitionToTurnSelectionMulti() {
   }
 
   db.ref('rooms/' + currentRoomId + '/turnState').on('value', (snapshot) => {
-    if (!snapshot.exists() && currentRoomId !== '') {
-      alert('방장이 퇴장하여 게임이 종료되었습니다.');
-      resetToStartScreen();
-      return;
-    }
+    if (!snapshot.exists()) return; // 방 폭파는 status 리스너에서 처리하므로 여기선 무시
     if (snapshot.val()) renderTurnSelectionMulti(snapshot.val());
   });
 }
@@ -193,8 +279,7 @@ function renderTurnSelectionMulti(tState) {
     db.ref('rooms/' + currentRoomId + '/turnState').off();
     document.getElementById('pause-screen').classList.add('hidden');
     alert('방장에 의해 게임이 종료되었습니다.');
-    if (isHost) db.ref('rooms/' + currentRoomId).remove();
-    resetToStartScreen();
+    forceReturnToLobby();
     return;
   }
 
@@ -203,9 +288,8 @@ function renderTurnSelectionMulti(tState) {
       (p) => p !== tState.leftPlayer,
     );
     if (remainingPlayers.length < 2) {
-      db.ref('rooms/' + currentRoomId + '/turnState').update({
-        hostQuit: true,
-      });
+      alert('상대방이 나가서 대기실로 돌아갑니다.');
+      returnToLobbyHost();
       return;
     }
     const turnCardsArray = Array(remainingPlayers.length).fill('');
@@ -382,13 +466,10 @@ function transitionToMultiGame() {
       .onDisconnect()
       .set(myNickname);
   }
+  db.ref('rooms/' + currentRoomId + '/turnState').off();
 
   db.ref('rooms/' + currentRoomId + '/gameState').on('value', (snapshot) => {
-    if (!snapshot.exists() && currentRoomId !== '') {
-      alert('방장이 퇴장하여 게임이 종료되었습니다.');
-      resetToStartScreen();
-      return;
-    }
+    if (!snapshot.exists()) return; // 방 폭파는 status 리스너에서 처리하므로 여기선 무시
     if (snapshot.val()) updateMultiUI(snapshot.val());
   });
 }
@@ -408,11 +489,8 @@ function updateMultiUI(gameState) {
     if (gameState.hostQuit) {
       db.ref('rooms/' + currentRoomId + '/gameState').off();
       switchScreen('pause-screen', null);
-      showMessage(gameState.message || '방장에 의해 게임이 종료되었습니다.');
-      setTimeout(() => {
-        if (isHost) db.ref('rooms/' + currentRoomId).remove();
-        resetToStartScreen();
-      }, 3000);
+      alert(gameState.message || '방장에 의해 게임이 종료되었습니다.');
+      forceReturnToLobby();
       return;
     }
 
@@ -481,11 +559,8 @@ function handlePlayerLeftMulti(gameState) {
   );
 
   if (activePlayers.length === 1 && activePlayers[0] === myNickname) {
-    db.ref('rooms/' + currentRoomId + '/gameState').update({
-      hostQuit: true,
-      message: '모든 플레이어가 게임을 종료했습니다. 게임을 종료합니다.',
-      leftPlayer: null,
-    });
+    alert('모든 상대방이 나가서 대기실로 돌아갑니다.');
+    returnToLobbyHost();
     return;
   }
 
@@ -542,6 +617,7 @@ function applyGameStateMulti(gameState) {
       p.deck = sData.deck || [];
       p.table = sData.table || [];
       p.isActive = sData.isActive;
+      p.isWaitingInLobby = sData.isWaitingInLobby || false;
       newTableCount += p.table.length;
     }
   });
@@ -582,10 +658,18 @@ function handleBellRingEventMulti(ringerName) {
         ? '🎉 내가 가장 먼저 정답을 맞췄습니다!'
         : `👤 ${ringerName}님이 가장 먼저 정답을 맞췄습니다!`;
   } else {
-    ringMsg =
-      ringerId === 0
-        ? '❌ 실수! 상대방들에게 카드를 1장씩 줍니다.'
-        : `👤 ${ringerName}님이 실수했습니다! 카드를 나눠 받습니다.`;
+    let p = players[ringerId];
+    if (p && p.deck.length > 0) {
+      ringMsg =
+        ringerId === 0
+          ? '❌ 실수! 상대방들에게 카드를 1장씩 줍니다.'
+          : `👤 ${ringerName}님이 실수했습니다! 카드를 나눠 받습니다.`;
+    } else {
+      ringMsg =
+        ringerId === 0
+          ? '❌ 카드가 없는 상태에서 실수했습니다! 즉시 탈락!'
+          : `👤 ${ringerName}님이 카드가 없이 실수하여 탈락했습니다!`;
+    }
   }
 
   showMessage(ringMsg);
@@ -716,16 +800,57 @@ function executeRingBellMulti() {
       ...allTableCards,
     ];
     updates[`currentTurn`] = myNickname; // 맞춘 사람이 다음 턴
-  } else {
-    let myNewDeck = [...players[0].deck];
+
+    // 남이 맞췄는데 여전히 0/0인 기회 소진 좀비들은 탈락 처리
     players.forEach((p) => {
-      if (!p.isUser && p.isActive && myNewDeck.length > 0) {
-        let pNewDeck = [...p.deck];
-        pNewDeck.unshift(myNewDeck.shift());
-        updates[`players/${p.name}/deck`] = pNewDeck;
+      if (
+        p.name !== myNickname &&
+        p.isActive &&
+        p.deck.length === 0 &&
+        p.table.length === 0 &&
+        p.hasLastChance
+      ) {
+        updates[`players/${p.name}/isActive`] = false;
       }
     });
-    updates[`players/${myNickname}/deck`] = myNewDeck;
+  } else {
+    let myNewDeck = [...players[0].deck];
+    if (myNewDeck.length > 0) {
+      players.forEach((p) => {
+        if (!p.isUser && p.isActive && myNewDeck.length > 0) {
+          let pNewDeck = [...p.deck];
+          pNewDeck.unshift(myNewDeck.shift());
+          updates[`players/${p.name}/deck`] = pNewDeck;
+        }
+      });
+      updates[`players/${myNickname}/deck`] = myNewDeck;
+    } else {
+      // 카드가 없는데 오답 종을 치면 즉시 탈락 업데이트
+      updates[`players/${myNickname}/isActive`] = false;
+    }
+
+    // 내 턴에 오답을 쳐서 카드가 0장이 되거나 탈락했다면, 게임이 멈추지 않게 다음 턴을 강제 탐색하여 넘김
+    if (players[currentTurn].name === myNickname && myNewDeck.length === 0) {
+      let nextTurn = currentTurn;
+      let startingTurn = currentTurn;
+      let found = false;
+      do {
+        nextTurn = (nextTurn + 1) % numPlayers;
+        let nextName = players[nextTurn].name;
+        // 방금 페널티로 인해 분배받은 새로운 덱이 있다면 그것을 우선적으로 길이 계산에 포함
+        let expectedDeckLength = updates[`players/${nextName}/deck`]
+          ? updates[`players/${nextName}/deck`].length
+          : players[nextTurn].deck.length;
+
+        if (players[nextTurn].isActive && expectedDeckLength > 0) {
+          found = true;
+          break;
+        }
+      } while (nextTurn !== startingTurn);
+      updates[`currentTurn`] = found
+        ? players[nextTurn].name
+        : players[startingTurn].name;
+    }
   }
 
   // 카드 이동 결과는 즉시 업데이트 (카운트다운이 끝나는 시점에 랙 없이 즉각 반영되도록 미리 전송)
@@ -737,4 +862,89 @@ function executeRingBellMulti() {
       lastBellRinger: '',
     });
   }, 2000);
+}
+
+// === 멀티플레이 게임 오버 및 관전/로비 복귀 제어 ===
+
+function spectateGame() {
+  document.getElementById('game-over-screen').classList.add('hidden');
+}
+
+function returnToLobbyLocal() {
+  db.ref('rooms/' + currentRoomId + '/gameState/players/' + myNickname).update({
+    isWaitingInLobby: true,
+  });
+  document.getElementById('game-over-screen').classList.add('hidden');
+  switchScreen('game-container', 'multi-lobby-screen');
+}
+
+function returnToLobbyHost() {
+  db.ref('rooms/' + currentRoomId).update({
+    status: 'waiting',
+    gameState: null,
+    turnState: null,
+  });
+}
+
+function forceReturnToLobbyWaiting() {
+  document.getElementById('game-over-screen').classList.add('hidden');
+  switchScreen('game-container', 'multi-lobby-screen');
+}
+
+function forceReturnToLobby() {
+  roomState.status = 'waiting';
+  isPaused = false;
+  isPlaying = false;
+  isLocked = false;
+  players = []; // 두 번째 게임 시작을 위한 플레이어 배열 완벽 초기화
+  pendingGameState = null;
+  previousTableCount = 0;
+  localBellRinger = '';
+  isLocalFlip = false;
+  isLocalBell = false;
+  clearTimeout(localFlipTimer);
+  clearTimeout(localBellTimer);
+
+  document.getElementById('pause-screen').classList.add('hidden');
+  document.getElementById('game-over-screen').classList.add('hidden');
+  document.getElementById('turn-screen').classList.add('hidden');
+  document.getElementById('game-container').classList.add('hidden');
+
+  if (!isHost) {
+    db.ref('rooms/' + currentRoomId + '/gameState/leftPlayer')
+      .onDisconnect()
+      .cancel();
+    db.ref('rooms/' + currentRoomId + '/turnState/leftPlayer')
+      .onDisconnect()
+      .cancel();
+  }
+  db.ref('rooms/' + currentRoomId + '/gameState').off();
+
+  document.getElementById('multi-lobby-screen').classList.remove('hidden');
+  const startBtn = document.getElementById('lobby-start-btn');
+  startBtn.disabled = !isHost;
+  startBtn.innerText = isHost ? '게임 시작 (방장)' : '방장의 시작 대기중...';
+
+  if (!isHost) {
+    db.ref('rooms/' + currentRoomId + '/players/' + myNickname).update({
+      isReady: false,
+    });
+    const readyBtn = document.getElementById('lobby-ready-btn');
+    if (readyBtn) {
+      readyBtn.innerText = '준비하기';
+      readyBtn.style.backgroundColor = 'var(--btn-bg)';
+      readyBtn.style.color = 'var(--btn-text)';
+    }
+  }
+
+  const destroyBtn = document.getElementById('lobby-destroy-btn');
+  if (destroyBtn) {
+    if (isHost) {
+      destroyBtn.classList.remove('hidden');
+    } else {
+      destroyBtn.classList.add('hidden');
+    }
+  }
+
+  updateLobbyUI();
 }

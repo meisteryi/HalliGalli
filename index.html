@@ -203,6 +203,21 @@
         >
           게임 시작 (방장 전용)
         </button>
+        <button class="btn hidden" id="lobby-ready-btn" onclick="toggleReady()">
+          준비하기
+        </button>
+        <button
+          class="btn hidden"
+          id="lobby-destroy-btn"
+          onclick="destroyRoom()"
+          style="
+            background-color: #d32f2f;
+            box-shadow: 0 4px 0 #b71c1c;
+            color: #fff;
+          "
+        >
+          방 폭파 (방장 전용)
+        </button>
       </div>
     </div>
 
@@ -238,9 +253,23 @@
       <div id="game-over-screen" class="screen hidden">
         <h1 id="game-over-title">게임 종료</h1>
         <p id="game-over-desc">결과 메시지</p>
-        <div class="player-select">
-          <button class="btn" onclick="resetToStartScreen()">
+        <div class="player-select" id="game-over-buttons">
+          <button
+            class="btn"
+            id="btn-return-main"
+            onclick="resetToStartScreen()"
+          >
             처음으로 돌아가기
+          </button>
+          <button class="btn hidden" id="btn-spectate" onclick="spectateGame()">
+            관전하기
+          </button>
+          <button
+            class="btn hidden"
+            id="btn-return-lobby"
+            onclick="returnToLobbyLocal()"
+          >
+            대기실로 나가기
           </button>
         </div>
       </div>
