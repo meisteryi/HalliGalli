@@ -5,17 +5,17 @@
   left: 20px;
   width: 50px;
   height: 50px;
-  background-color: #fbc02d;
+  background-color: var(--btn-bg);
   border: none;
   border-radius: 10px;
-  color: #000;
+  color: var(--btn-text);
   font-size: 1.8rem;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
   z-index: 50;
-  box-shadow: 0 4px 0 #f9a825;
+  box-shadow: 0 4px 0 var(--btn-shadow);
   transition:
     transform 0.1s ease,
     filter 0.1s ease;
@@ -28,14 +28,14 @@
 
 .back-btn:active {
   transform: scale(0.9);
-  box-shadow: 0 0 0 #f9a825;
+  box-shadow: 0 0 0 var(--btn-shadow);
 }
 
 .text-input,
 #player-count-input {
   padding: 15px;
-  font-size: 1.2rem;
-  font-weight: bold;
+  font-size: 1.4rem;
+  font-weight: var(--main-font-weight);
   text-align: center;
   border: none;
   border-radius: 8px;
@@ -85,26 +85,26 @@
 .btn {
   flex: 1;
   padding: 15px;
-  font-size: 1.2rem;
-  font-weight: bold;
+  font-size: 1.4rem;
+  font-weight: var(--main-font-weight);
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  background-color: #fbc02d;
-  color: #000;
-  box-shadow: 0 4px 0 #f9a825;
+  background-color: var(--btn-bg);
+  color: var(--btn-text);
+  box-shadow: 0 4px 0 var(--btn-shadow);
   transition: all 0.1s ease;
 }
 
 .btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 0 #f9a825;
+  box-shadow: 0 6px 0 var(--btn-shadow);
   filter: brightness(1.05);
 }
 
 .btn:active {
   transform: translateY(4px);
-  box-shadow: 0 0 0 #f9a825;
+  box-shadow: 0 0 0 var(--btn-shadow);
 }
 
 .btn:disabled {

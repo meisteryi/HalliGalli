@@ -5,20 +5,26 @@
   --card-bg: #ffffff;
   --bell-color: #d32f2f;
   --bell-shadow: #b71c1c;
+  --btn-bg: #fbc02d;
+  --btn-shadow: #f9a825;
+  --btn-text: #000000;
+  --main-font:
+    'Jua', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  --title-anim: titleBounce 2s infinite ease-in-out;
+  --main-spacing: normal;
+  --main-font-weight: bold;
+  --title-font-weight: 900;
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family:
-    'Jua',
-    -apple-system,
-    BlinkMacSystemFont,
-    system-ui,
-    Roboto,
-    sans-serif;
+  font-family: var(--main-font);
+  letter-spacing: var(--main-spacing);
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
@@ -45,23 +51,23 @@ body {
 }
 
 .screen p {
-  font-size: 1.2rem;
-  font-weight: bold;
+  font-size: 1.4rem;
+  font-weight: var(--main-font-weight);
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 /* 게임 타이틀 꾸미기 */
 .screen h1 {
-  font-size: 4.5rem;
+  font-size: 5rem;
   text-align: center;
   color: #fff;
   text-shadow:
     0 6px 0 #b71c1c,
     0 10px 20px rgba(0, 0, 0, 0.5);
-  font-weight: 900;
+  font-weight: var(--title-font-weight);
   letter-spacing: 2px;
   margin-bottom: -10px;
-  animation: titleBounce 2s infinite ease-in-out;
+  animation: var(--title-anim);
 }
 
 .hidden {
@@ -84,6 +90,16 @@ body {
   }
   50% {
     transform: translateY(-15px) rotate(3deg);
+  }
+}
+
+@keyframes titleSporty {
+  0%,
+  100% {
+    transform: translateY(0) skewX(-10deg);
+  }
+  50% {
+    transform: translateY(-10px) skewX(-10deg) scale(1.1);
   }
 }
 

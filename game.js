@@ -20,8 +20,31 @@ function generateDeck() {
   return deck;
 }
 
+function applyStandardTheme() {
+  document.documentElement.style.setProperty('--bg-color', '#2e7d32');
+  document.documentElement.style.setProperty('--btn-bg', '#fbc02d');
+  document.documentElement.style.setProperty('--btn-shadow', '#f9a825');
+  document.documentElement.style.setProperty('--btn-text', '#000000');
+  document.documentElement.style.setProperty(
+    '--main-font',
+    "'Jua', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif",
+  );
+  document.documentElement.style.setProperty(
+    '--title-anim',
+    'titleBounce 2s infinite ease-in-out',
+  );
+  document.documentElement.style.setProperty('--main-spacing', 'normal');
+  document.documentElement.style.setProperty('--main-font-weight', 'bold');
+  document.documentElement.style.setProperty('--title-font-weight', '900');
+  document.querySelectorAll('.floating-fruit').forEach((fruit) => {
+    const duration = Math.random() * 15 + 15;
+    fruit.style.animationDuration = `${duration}s`;
+  });
+}
+
 function resetToStartScreen() {
   [
+    'mode-screen',
     'difficulty-screen',
     'multi-entry-screen',
     'nickname-screen',
@@ -32,7 +55,8 @@ function resetToStartScreen() {
   ].forEach((id) => {
     document.getElementById(id).classList.add('hidden');
   });
-  document.getElementById('mode-screen').classList.remove('hidden');
+  document.getElementById('type-screen').classList.remove('hidden');
+  applyStandardTheme();
   players = [];
   domStartBtn.classList.add('hidden');
   domMessage.innerText = '게임 시작 버튼을 눌러주세요!';
@@ -169,6 +193,47 @@ function quitGame() {
 
   switchScreen('pause-screen', null);
   resetToStartScreen();
+}
+
+function selectGameType(type) {
+  gameType = type;
+
+  const titleText =
+    type === 'standard' ? '할리갈리 Standard' : '할리갈리 Extended';
+  document.querySelector('#mode-screen h1').innerText = titleText;
+  document.querySelector('#difficulty-screen h1').innerText = titleText;
+
+  // 익스텐디드 모드 테마 적용 (배경색 및 과일 속도 조절)
+  if (type === 'extended') {
+    document.documentElement.style.setProperty('--bg-color', '#0a0f1c'); // 어두운 남색
+    document.documentElement.style.setProperty('--btn-bg', '#00e5ff'); // 네온 시안
+    document.documentElement.style.setProperty('--btn-shadow', '#00b8d4');
+    document.documentElement.style.setProperty('--btn-text', '#000000');
+    document.documentElement.style.setProperty(
+      '--main-font',
+      "'Black Han Sans', sans-serif",
+    );
+    document.documentElement.style.setProperty(
+      '--title-anim',
+      'titleSporty 0.5s infinite ease-in-out',
+    );
+    document.documentElement.style.setProperty('--main-spacing', '2px');
+    document.documentElement.style.setProperty('--main-font-weight', 'normal');
+    document.documentElement.style.setProperty('--title-font-weight', 'normal');
+    document.querySelectorAll('.floating-fruit').forEach((fruit) => {
+      const duration = Math.random() * 3 + 2; // 2~5초 (매우 빠름)
+      fruit.style.animationDuration = `${duration}s`;
+    });
+  } else {
+    applyStandardTheme();
+  }
+
+  switchScreen('type-screen', 'mode-screen');
+}
+
+function goBackToType() {
+  applyStandardTheme();
+  switchScreen('mode-screen', 'type-screen');
 }
 
 function goBackToMode() {

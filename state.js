@@ -17,6 +17,7 @@ const fruits = ['🍎', '🍌', '🍇', '🍓'];
 // 각 과일별 14장 구성 (1개:5장, 2개:3장, 3개:3장, 4개:2장, 5개:1장)
 const cardDistribution = [1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 5];
 
+let gameType = 'standard'; // 'standard' | 'extended'
 let gameMode = 'solo'; // 'solo' | 'multi'
 let difficulty = 'normal'; // 'easy' | 'normal' | 'hard'
 let numPlayers = 2;
