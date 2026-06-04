@@ -53,6 +53,46 @@ function applyStandardTheme() {
   });
 }
 
+function applyExtendedTheme() {
+  document.documentElement.style.setProperty('--bg-color', '#0a0f1c');
+  document.documentElement.style.setProperty('--btn-bg', '#00e5ff');
+  document.documentElement.style.setProperty('--btn-shadow', '#00b8d4');
+  document.documentElement.style.setProperty('--btn-text', '#000000');
+  document.documentElement.style.setProperty(
+    '--main-font',
+    "'Black Han Sans', sans-serif",
+  );
+  document.documentElement.style.setProperty(
+    '--title-anim',
+    'titleSporty 0.5s infinite ease-in-out',
+  );
+  document.documentElement.style.setProperty('--main-spacing', '2px');
+  document.documentElement.style.setProperty('--main-font-weight', 'normal');
+  document.documentElement.style.setProperty('--title-font-weight', 'normal');
+  document.querySelectorAll('.floating-fruit').forEach((fruit) => {
+    const duration = Math.random() * 3 + 2;
+    fruit.style.animationDuration = `${duration}s`;
+  });
+}
+
+function setGameType(type) {
+  gameType = type;
+  const titleText =
+    type === 'standard' ? '할리갈리 Standard' : '할리갈리 Extended';
+
+  const modeScreenH1 = document.querySelector('#mode-screen h1');
+  const diffScreenH1 = document.querySelector('#difficulty-screen h1');
+  if (modeScreenH1) modeScreenH1.innerText = titleText;
+  if (diffScreenH1) diffScreenH1.innerText = titleText;
+
+  const domLobbyType = document.getElementById('lobby-game-type');
+  if (domLobbyType)
+    domLobbyType.innerText = type === 'standard' ? 'Standard' : 'Extended';
+
+  if (type === 'extended') applyExtendedTheme();
+  else applyStandardTheme();
+}
+
 function resetToStartScreen() {
   [
     'mode-screen',
@@ -67,7 +107,7 @@ function resetToStartScreen() {
     document.getElementById(id).classList.add('hidden');
   });
   document.getElementById('type-screen').classList.remove('hidden');
-  applyStandardTheme();
+  setGameType('standard'); // 초기화 시 내부 상태(gameType)까지 완벽하게 스탠다드로 원복
   players = [];
   domStartBtn.classList.add('hidden');
   domMessage.innerText = '게임 시작 버튼을 눌러주세요!';
@@ -207,43 +247,12 @@ function quitGame() {
 }
 
 function selectGameType(type) {
-  gameType = type;
-
-  const titleText =
-    type === 'standard' ? '할리갈리 Standard' : '할리갈리 Extended';
-  document.querySelector('#mode-screen h1').innerText = titleText;
-  document.querySelector('#difficulty-screen h1').innerText = titleText;
-
-  // 익스텐디드 모드 테마 적용 (배경색 및 과일 속도 조절)
-  if (type === 'extended') {
-    document.documentElement.style.setProperty('--bg-color', '#0a0f1c'); // 어두운 남색
-    document.documentElement.style.setProperty('--btn-bg', '#00e5ff'); // 네온 시안
-    document.documentElement.style.setProperty('--btn-shadow', '#00b8d4');
-    document.documentElement.style.setProperty('--btn-text', '#000000');
-    document.documentElement.style.setProperty(
-      '--main-font',
-      "'Black Han Sans', sans-serif",
-    );
-    document.documentElement.style.setProperty(
-      '--title-anim',
-      'titleSporty 0.5s infinite ease-in-out',
-    );
-    document.documentElement.style.setProperty('--main-spacing', '2px');
-    document.documentElement.style.setProperty('--main-font-weight', 'normal');
-    document.documentElement.style.setProperty('--title-font-weight', 'normal');
-    document.querySelectorAll('.floating-fruit').forEach((fruit) => {
-      const duration = Math.random() * 3 + 2; // 2~5초 (매우 빠름)
-      fruit.style.animationDuration = `${duration}s`;
-    });
-  } else {
-    applyStandardTheme();
-  }
-
+  setGameType(type);
   switchScreen('type-screen', 'mode-screen');
 }
 
 function goBackToType() {
-  applyStandardTheme();
+  setGameType('standard');
   switchScreen('mode-screen', 'type-screen');
 }
 

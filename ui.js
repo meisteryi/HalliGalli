@@ -160,7 +160,7 @@ function animateCardsToWinner(winnerId) {
     if (p.table.length > 0) {
       const rect = p.domCard.getBoundingClientRect();
       const animCard = document.createElement('div');
-      animCard.className = 'card-slot';
+      animCard.className = p.domCard.className; // 썩은 과일 등의 원본 클래스 그대로 복사
       animCard.innerHTML = p.domCard.innerHTML;
 
       animCard.style.position = 'fixed';
@@ -174,6 +174,8 @@ function animateCardsToWinner(winnerId) {
 
       document.body.appendChild(animCard);
       p.domCard.innerHTML = ''; // 원본 카드는 즉시 숨김
+      p.domCard.style.visibility = 'hidden'; // 흰 바탕 테두리 등 잔여물 완벽 숨김
+      p.domCard.classList.remove('rotten-card'); // 썩은 과일 속성 초기화
 
       void animCard.offsetWidth; // 브라우저 렌더링 강제 업데이트 (Reflow)
 

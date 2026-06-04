@@ -35,6 +35,7 @@ function createRoom() {
 
   roomState = {
     status: 'waiting',
+    gameType: gameType, // 방을 만든 호스트의 게임 모드(스탠다드/익스텐디드) 저장
     players: {},
   };
   roomState.players[myNickname] = { isHost: true };
@@ -69,6 +70,9 @@ function joinRoom() {
           return alert('이미 게임이 시작된 방입니다!');
         if (data.players && data.players[myNickname])
           return alert('이미 방에 같은 닉네임이 있습니다!');
+
+        // 방장이 설정한 게임 타입으로 내 클라이언트 테마 및 로직 강제 동기화
+        setGameType(data.gameType || 'standard');
 
         db.ref('rooms/' + currentRoomId + '/players/' + myNickname)
           .set({ isHost: false })
@@ -724,8 +728,13 @@ function executeRingBellMulti() {
     updates[`players/${myNickname}/deck`] = myNewDeck;
   }
 
+  // 카드 이동 결과는 즉시 업데이트 (카운트다운이 끝나는 시점에 랙 없이 즉각 반영되도록 미리 전송)
+  db.ref('rooms/' + currentRoomId + '/gameState').update(updates);
+
+  // 종을 쳤다는 이벤트(애니메이션 잠금 트리거)만 2초 후 해제
   setTimeout(() => {
-    updates[`lastBellRinger`] = '';
-    db.ref('rooms/' + currentRoomId + '/gameState').update(updates);
+    db.ref('rooms/' + currentRoomId + '/gameState').update({
+      lastBellRinger: '',
+    });
   }, 2000);
 }
