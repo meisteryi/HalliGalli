@@ -245,12 +245,12 @@
   grid-template-rows: repeat(3, 1fr);
   justify-items: center;
   align-items: center;
-  width: 100%;
-  height: 100%;
+  width: 80%;
+  height: 80%;
 }
 
 .card-content.count-5 span {
-  font-size: 0.85em; /* 5개일 때는 삐져나가지 않도록 크기를 15% 줄임 */
+  font-size: 0.75em; /* 환경에 따라 삐져나가지 않도록 크기를 25% 줄임 */
 }
 
 .card-content.count-5 span:nth-child(1) {
