@@ -162,6 +162,17 @@
   padding: 8px;
 }
 
+/* 썩은 과일 카드 특수 스타일 (배경색 변경 및 실선 테두리) */
+.card-slot.rotten-card {
+  background-color: #4a422c; /* 더럽고 칙칙한 초록/갈색 */
+  background-image: radial-gradient(
+    circle,
+    #5c5542 0%,
+    #383222 100%
+  ); /* 얼룩진 썩은 느낌의 그라데이션 */
+  border: 2px solid #8bc34a;
+}
+
 .card-content {
   display: flex;
   flex-wrap: wrap;
@@ -178,35 +189,74 @@
   line-height: 1;
 }
 
+/* 썩은 과일 이모지 시인성 확보 (원래 색상 유지 + 흰색 테두리 추가) */
+.card-content.rotten span {
+  /* 포도 등 어두운 과일이 잘 보이도록 사방에 얇은 흰색 테두리 그림자 부여 */
+  text-shadow:
+    -1px -1px 0 rgba(255, 255, 255, 0.8),
+    1px -1px 0 rgba(255, 255, 255, 0.8),
+    -1px 1px 0 rgba(255, 255, 255, 0.8),
+    1px 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Windows, Android 환경에서 과일이 일렬로 나열되는 버그 수정을 위한 명시적 레이아웃 */
+.card-content.count-2 {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.card-content.count-3 {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  justify-content: center;
+  align-content: center;
+  gap: 10px 15px;
+}
+.card-content.count-3 span:nth-child(1) {
+  grid-column: 1 / -1;
+  text-align: center;
+}
+
+.card-content.count-4 {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  justify-content: center;
+  align-content: center;
+  gap: 10px 15px;
+}
+
 /* 5개짜리 과일 주사위 5 모양 배치 (CSS Grid 활용) */
-.card-content.dice-five {
+.card-content.count-5 {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: 1fr 1fr 1fr;
   gap: 0;
 }
 
-.card-content.dice-five span {
+.card-content.count-5 span {
   font-size: 0.85em; /* 5개일 때는 삐져나가지 않도록 크기를 15% 줄임 */
 }
 
-.card-content.dice-five span:nth-child(1) {
+.card-content.count-5 span:nth-child(1) {
   grid-column: 1;
   grid-row: 1;
 } /* 좌상단 */
-.card-content.dice-five span:nth-child(2) {
+.card-content.count-5 span:nth-child(2) {
   grid-column: 3;
   grid-row: 1;
 } /* 우상단 */
-.card-content.dice-five span:nth-child(3) {
+.card-content.count-5 span:nth-child(3) {
   grid-column: 2;
   grid-row: 2;
 } /* 정중앙 */
-.card-content.dice-five span:nth-child(4) {
+.card-content.count-5 span:nth-child(4) {
   grid-column: 1;
   grid-row: 3;
 } /* 좌하단 */
-.card-content.dice-five span:nth-child(5) {
+.card-content.count-5 span:nth-child(5) {
   grid-column: 3;
   grid-row: 3;
 } /* 우하단 */

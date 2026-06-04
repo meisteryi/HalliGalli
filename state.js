@@ -16,6 +16,11 @@ const db = firebase.database();
 const fruits = ['🍎', '🍌', '🍇', '🍓'];
 // 각 과일별 14장 구성 (1개:5장, 2개:3장, 3개:3장, 4개:2장, 5개:1장)
 const cardDistribution = [1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 5];
+// 익스텐디드 모드 전용 구성 (일반 과일 17장, 썩은 과일 5장 = 과일당 22장, 총 88장)
+const extendedNormalDistribution = [
+  1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5,
+];
+const extendedRottenDistribution = [1, 1, 2, 2, 3];
 
 let gameType = 'standard'; // 'standard' | 'extended'
 let gameMode = 'solo'; // 'solo' | 'multi'

@@ -635,6 +635,9 @@ function setupMultiplayerUI(gameState) {
 }
 
 function userFlipMulti() {
+  // 내 차례(0번)가 아닐 때는 카드를 뒤집지 못하도록 차단! (상태 꼬임 방지)
+  if (currentTurn !== 0) return;
+
   let p = players[0];
   if (p.deck.length === 0) return;
 

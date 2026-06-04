@@ -8,9 +8,20 @@ function switchScreen(hideId, showId) {
 // 카드 생성 및 셔플
 function generateDeck() {
   let deck = [];
-  for (let fruit of fruits) {
-    for (let count of cardDistribution) {
-      deck.push({ fruit, count });
+  if (gameType === 'standard') {
+    for (let fruit of fruits) {
+      for (let count of cardDistribution) {
+        deck.push({ fruit, count, isRotten: false });
+      }
+    }
+  } else {
+    for (let fruit of fruits) {
+      for (let count of extendedNormalDistribution) {
+        deck.push({ fruit, count, isRotten: false });
+      }
+      for (let count of extendedRottenDistribution) {
+        deck.push({ fruit, count, isRotten: true });
+      }
     }
   }
   for (let i = deck.length - 1; i > 0; i--) {
@@ -452,7 +463,11 @@ function isExactlyFive() {
   players.forEach((p) => {
     if (p.isActive && p.table.length > 0) {
       let topCard = p.table[p.table.length - 1];
-      totals[topCard.fruit] += topCard.count;
+      if (topCard.isRotten) {
+        totals[topCard.fruit] -= topCard.count;
+      } else {
+        totals[topCard.fruit] += topCard.count;
+      }
     }
   });
   return Object.values(totals).includes(5);
