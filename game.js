@@ -175,6 +175,9 @@ function quitGame() {
 function selectGameType(type) {
   setGameType(type);
   switchScreen('type-screen', 'mode-screen');
+  if (type === 'extended') {
+    showExtendedRuleModal();
+  }
 }
 
 function goBackToType() {
