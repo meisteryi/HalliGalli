@@ -24,6 +24,15 @@ const extendedNormalDistribution = [
 // 상쇄 룰이 잘 터지도록 썩은 과일 종류 약간 추가
 const extendedRottenDistribution = [1, 1, 2, 2, 3, 3, 4];
 
+// 덱 셔플 유틸리티 함수 (중복 제거)
+function shuffleDeck(deck) {
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck;
+}
+
 let gameType = 'standard'; // 'standard' | 'extended'
 let gameMode = 'solo'; // 'solo' | 'multi'
 let difficulty = 'normal'; // 'easy' | 'normal' | 'hard'

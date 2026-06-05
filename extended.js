@@ -10,11 +10,7 @@ function generateExtendedDeck() {
       deck.push({ fruit, count, isRotten: true });
     }
   }
-  for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [deck[i], deck[j]] = [deck[j], deck[i]];
-  }
-  return deck;
+  return shuffleDeck(deck);
 }
 
 function checkExtendedRule(currentPlayers) {
